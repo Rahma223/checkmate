@@ -1,27 +1,25 @@
+import 'package:checkmate/core/network/api_client.dart';
+import 'package:checkmate/data/repositories/auth_repository_impl.dart';
+import 'package:checkmate/data/services/auth_local_data_source.dart';
+import 'package:checkmate/data/services/auth_remote_data_source.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-// Core
 import 'core/theme/app_theme.dart';
 
-// Repositories (mock — swap with real ones when backend is ready)
 import 'data/repositories/mock_repositories.dart';
 
-// Domain contracts
 import 'domain/repositories/repositories.dart';
 
-// Cubits
 import 'presentation/cubits/cubits.dart';
 
-// Screens
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/shell_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lock to portrait
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -42,10 +40,12 @@ class CheckmateApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ── Instantiate repositories once ────────────────────────
-    // To connect a real backend later, just replace MockXxxRepository()
-    // with your real implementation that implements the same abstract class.
-    final authRepo = MockAuthRepository();
+    final authRepo = AuthRepositoryImpl(
+  AuthRemoteDataSource(
+    ApiClient.create(),
+  ),
+  AuthLocalDataSource(),
+);
     final attendanceRepo = MockAttendanceRepository();
     final taskRepo = MockTaskRepository();
     final scheduleRepo = MockScheduleRepository();
@@ -54,7 +54,6 @@ class CheckmateApp extends StatelessWidget {
     final notifRepo = MockNotificationRepository();
 
     return MultiRepositoryProvider(
-      // Expose repository contracts so cubits can be rebuilt with real impls
       providers: [
         RepositoryProvider<AuthRepository>(create: (_) => authRepo),
         RepositoryProvider<AttendanceRepository>(create: (_) => attendanceRepo),
@@ -94,9 +93,6 @@ class CheckmateApp extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Root navigator — shows Login or Shell based on auth state
-// ─────────────────────────────────────────────────────────────
 class _RootNavigator extends StatelessWidget {
   const _RootNavigator();
 
@@ -111,19 +107,12 @@ class _RootNavigator extends StatelessWidget {
           return ShellScreen(onLogout: () => ctx.read<AuthCubit>().logout());
         }
         // AuthUnauthenticated, AuthError
-        return LoginScreen(
-          onSuccess: () {
-            // Navigation handled reactively by BlocBuilder above
-          },
-        );
+        return LoginScreen(onSuccess: () {});
       },
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Splash screen shown briefly on cold start
-// ─────────────────────────────────────────────────────────────
 class _SplashScreen extends StatefulWidget {
   const _SplashScreen();
 
@@ -149,13 +138,21 @@ class _SplashScreenState extends State<_SplashScreen>
   ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
 
   @override
-  void initState() {
-    super.initState();
-    // Kick off auth check — cubit will emit the right state
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthCubit>().checkAuth();
-    });
-  }
+void initState() {
+  super.initState();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+
+    Future.delayed(
+      const Duration(seconds: 2),
+      () {
+        if (mounted) {
+          context.read<AuthCubit>().checkAuth();
+        }
+      },
+    );
+  });
+}
 
   @override
   void dispose() {
@@ -166,65 +163,93 @@ class _SplashScreenState extends State<_SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: Center(
-        child: FadeTransition(
-          opacity: _fade,
-          child: ScaleTransition(
-            scale: _scale,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppColors.primary, AppColors.primaryContainer],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Logo
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.primary, AppColors.primaryContainer],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                const SizedBox(),
+                FadeTransition(
+                  opacity: _fade,
+                  child: ScaleTransition(
+                    scale: _scale,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [AppColors.onPrimary, AppColors.primary],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(28),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withOpacity(0.28),
+                                blurRadius: 22,
+                                offset: const Offset(0, 12),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.shield_rounded,
+                            color: AppColors.onPrimary,
+                            size: 44,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Checkmate',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.onPrimary,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Workforce attendance, simplified.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: AppColors.onPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 36),
+                        const SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation(
+                              AppColors.onPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.35),
-                        blurRadius: 24,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.business_center_rounded,
-                    color: Colors.white,
-                    size: 38,
                   ),
                 ),
-                const SizedBox(height: 20),
                 const Text(
-                  'Checkmate',
+                  'Built for modern HR teams',
                   style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.onSurface,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Smart attendance management',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 48),
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: AppColors.primary,
+                    fontSize: 13,
+                    color: AppColors.onPrimary,
+                    letterSpacing: 0.15,
                   ),
                 ),
               ],

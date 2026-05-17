@@ -35,9 +35,26 @@ class UserEntity extends Equatable {
     this.usedLeaves  = 5,
   });
 
-  String get firstName       => name.split(' ').first;
-  String get initials        => name.split(' ').take(2).map((n) => n[0]).join().toUpperCase();
-  int    get remainingLeaves => totalLeaves - usedLeaves;
+  String get firstName {
+  final parts = name.trim().split(RegExp(r'\s+'));
+  return parts.isNotEmpty && parts.first.isNotEmpty ? parts.first : '';
+}
+
+String get initials {
+  final parts = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((n) => n.isNotEmpty)
+      .toList();
+
+  if (parts.isEmpty) return '';
+
+  return parts
+      .take(2)
+      .map((n) => n[0])
+      .join()
+      .toUpperCase();
+}  int    get remainingLeaves => totalLeaves - usedLeaves;
 
   UserEntity copyWith({
     String? name, String? phone, String? avatarUrl,
@@ -59,6 +76,7 @@ class UserEntity extends Equatable {
   @override
   List<Object?> get props => [id, name, email, department, position, employeeId];
 }
+
 
 // ─────────────────────────────────────────────────────────────
 // ATTENDANCE
