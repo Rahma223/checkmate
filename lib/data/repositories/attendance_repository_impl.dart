@@ -118,13 +118,108 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     }
   }
 
-  @override
-  Future<Either<Failure, AttendanceEntity>> startBreak(String breakType) async {
-    return Left(ServerFailure('Not implemented yet'));
-  }
+ @override
+Future<Either<Failure, AttendanceEntity>> startBreak(
+  String breakType,
+) async {
+  try {
+    if (_currentAttendance == null) {
+      return Left(
+        ServerFailure('No active attendance found'),
+      );
+    }
 
-  @override
-  Future<Either<Failure, AttendanceEntity>> endBreak() async {
-    return Left(ServerFailure('Not implemented yet'));
+    final breaks = List<BreakEntity>.from(
+      _currentAttendance!.breaks,
+    );
+
+    breaks.add(
+      BreakEntity(
+        type: breakType,
+        startTime: DateTime.now(),
+      ),
+    );
+
+    final updatedAttendance = AttendanceEntity(
+      id: _currentAttendance!.id,
+      userId: _currentAttendance!.userId,
+      date: _currentAttendance!.date,
+      checkIn: _currentAttendance!.checkIn,
+      checkOut: _currentAttendance!.checkOut,
+      status: 'on_break',
+      location: _currentAttendance!.location,
+      lat: _currentAttendance!.lat,
+      lng: _currentAttendance!.lng,
+      breaks: breaks,
+    );
+
+    _currentAttendance = updatedAttendance;
+
+    return Right(updatedAttendance);
+
+  } catch (e) {
+
+    return Left(
+      ServerFailure(e.toString()),
+    );
   }
+}
+
+@override
+Future<Either<Failure, AttendanceEntity>> endBreak() async {
+  try {
+
+    if (_currentAttendance == null) {
+      return Left(
+        ServerFailure('No active attendance found'),
+      );
+    }
+
+    final breaks = List<BreakEntity>.from(
+      _currentAttendance!.breaks,
+    );
+
+    final index = breaks.lastIndexWhere(
+      (b) => b.endTime == null,
+    );
+
+    if (index == -1) {
+      return Left(
+        ServerFailure('No active break found'),
+      );
+    }
+
+    final currentBreak = breaks[index];
+
+    breaks[index] = BreakEntity(
+      type: currentBreak.type,
+      startTime: currentBreak.startTime,
+      endTime: DateTime.now(),
+    );
+
+    final updatedAttendance = AttendanceEntity(
+      id: _currentAttendance!.id,
+      userId: _currentAttendance!.userId,
+      date: _currentAttendance!.date,
+      checkIn: _currentAttendance!.checkIn,
+      checkOut: _currentAttendance!.checkOut,
+      status: 'checked_in',
+      location: _currentAttendance!.location,
+      lat: _currentAttendance!.lat,
+      lng: _currentAttendance!.lng,
+      breaks: breaks,
+    );
+
+    _currentAttendance = updatedAttendance;
+
+    return Right(updatedAttendance);
+
+  } catch (e) {
+
+    return Left(
+      ServerFailure(e.toString()),
+    );
+  }
+}
+
 }
