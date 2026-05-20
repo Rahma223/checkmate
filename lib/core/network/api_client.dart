@@ -1,8 +1,5 @@
 import 'package:dio/dio.dart';
-
-/// Stub API client.
-/// Replace [baseUrl] with your real endpoint and add interceptors (auth token, etc.).
-
+import 'package:checkmate/data/services/auth_local_data_source.dart';
 
 class ApiClient {
   ApiClient._();
@@ -23,6 +20,30 @@ class ApiClient {
       ),
     );
 
+    // AUTO TOKEN INTERCEPTOR
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await AuthLocalDataSource().getToken();
+
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+
+          handler.next(options);
+        },
+
+        onError: (e, handler) async {
+          // TOKEN EXPIRED
+          if (e.response?.statusCode == 401) {
+            await AuthLocalDataSource().clearToken();
+          }
+
+          handler.next(e);
+        },
+      ),
+    );
+
     dio.interceptors.add(
       LogInterceptor(
         requestBody: true,
@@ -33,11 +54,15 @@ class ApiClient {
     return dio;
   }
 }
-/// Placeholder exception – replace with your actual API error model.
+
 class ApiException implements Exception {
   final int statusCode;
   final String message;
-  const ApiException({required this.statusCode, required this.message});
+
+  const ApiException({
+    required this.statusCode,
+    required this.message,
+  });
 
   @override
   String toString() => 'ApiException($statusCode): $message';

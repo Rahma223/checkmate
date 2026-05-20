@@ -581,13 +581,14 @@ class _LeaveRequestSheetState extends State<_LeaveRequestSheet> {
     return BlocConsumer<ProfileCubit, ProfileState>(
       listener: (ctx, state) {
         if (state.successMessage != null) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
+          final message = state.successMessage!;
+          ScaffoldMessenger.of(ctx).showSnackBar(
             SnackBar(
-              content: Text(state.successMessage!),
+              content: Text(message),
               backgroundColor: AppColors.success,
             ),
           );
+          Navigator.pop(context);
         }
         if (state.error != null) {
           ScaffoldMessenger.of(context).showSnackBar(

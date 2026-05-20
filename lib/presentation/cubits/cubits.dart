@@ -44,18 +44,25 @@ class AuthCubit extends Cubit<AuthState> {
   AuthCubit(this._repo) : super(const AuthInitial());
 
   Future<void> checkAuth() async {
-    final isIn = await _repo.isLoggedIn();
-    if (isIn) {
-      final result = await _repo.getProfile();
-      result.fold(
-        (_) => emit(const AuthUnauthenticated()),
-        (u) => emit(AuthAuthenticated(u)),
-      );
-    } else {
-      emit(const AuthUnauthenticated());
-    }
+  emit(const AuthLoading());
+
+  final isIn = await _repo.isLoggedIn();
+
+  if (!isIn) {
+    emit(const AuthUnauthenticated());
+    return;
   }
 
+  final result = await _repo.getProfile();
+
+  result.fold(
+    (_) async {
+      await _repo.logout();
+      emit(const AuthUnauthenticated());
+    },
+    (u) => emit(AuthAuthenticated(u)),
+  );
+}
   Future<void> login(String email, String password) async {
     emit(const AuthLoading());
     final result = await _repo.login(email: email, password: password);
@@ -149,12 +156,16 @@ class HomeCubit extends Cubit<HomeState> {
   final AttendanceRepository _attendanceRepo;
   final TaskRepository _taskRepo;
   final NotificationRepository _notifRepo;
+  final AuthCubit _authCubit;
 
-  HomeCubit(this._attendanceRepo, this._taskRepo, this._notifRepo)
-    : super(const HomeState()) {
+  HomeCubit(
+    this._attendanceRepo,
+    this._taskRepo,
+    this._notifRepo,
+    this._authCubit,
+  ) : super(const HomeState()) {
     load();
   }
-
   Future<void> load() async {
     emit(state.copyWith(isLoading: true, isSyncing: true));
     final results = await Future.wait([
@@ -192,11 +203,23 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> checkIn() async {
     emit(state.copyWith(actionInProgress: 'check_in'));
+
+    final authState = _authCubit.state;
+
+    if (authState is! AuthAuthenticated) {
+      emit(state.copyWith(error: 'User not logged in', actionInProgress: ''));
+      return;
+    }
+
+    final userId = authState.user.id;
+
     final result = await _attendanceRepo.checkIn(
+      userId: userId,
       lat: 40.7484,
       lng: -73.9967,
       location: 'HQ - Tower A',
     );
+
     result.fold(
       (f) => emit(state.copyWith(error: f.message, actionInProgress: '')),
       (r) => emit(state.copyWith(todayRecord: r, actionInProgress: '')),

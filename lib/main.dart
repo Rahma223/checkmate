@@ -1,21 +1,24 @@
 import 'package:checkmate/core/network/api_client.dart';
+import 'package:checkmate/core/theme/app_theme.dart';
+
+import 'package:checkmate/data/repositories/attendance_repository_impl.dart';
 import 'package:checkmate/data/repositories/auth_repository_impl.dart';
+import 'package:checkmate/data/repositories/mock_repositories.dart';
+
+import 'package:checkmate/data/services/attendance_remote_data_source.dart';
 import 'package:checkmate/data/services/auth_local_data_source.dart';
 import 'package:checkmate/data/services/auth_remote_data_source.dart';
+
+import 'package:checkmate/domain/repositories/repositories.dart';
+
+import 'package:checkmate/presentation/cubits/cubits.dart';
+
+import 'package:checkmate/presentation/screens/auth/login_screen.dart';
+import 'package:checkmate/presentation/screens/shell_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import 'core/theme/app_theme.dart';
-
-import 'data/repositories/mock_repositories.dart';
-
-import 'domain/repositories/repositories.dart';
-
-import 'presentation/cubits/cubits.dart';
-
-import 'presentation/screens/auth/login_screen.dart';
-import 'presentation/screens/shell_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,7 +34,7 @@ void main() async {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
-
+ await AuthLocalDataSource().clearToken();
   runApp(const CheckmateApp());
 }
 
@@ -40,13 +43,27 @@ class CheckmateApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // API CLIENT
+    final apiClient = ApiClient.create();
+
+    // DATA SOURCES
+    final authLocal = AuthLocalDataSource();
+
+    final authRemote = AuthRemoteDataSource(apiClient);
+
+    final attendanceRemote = AttendanceRemoteDataSource(apiClient);
+
+    // REPOSITORIES
     final authRepo = AuthRepositoryImpl(
-  AuthRemoteDataSource(
-    ApiClient.create(),
-  ),
-  AuthLocalDataSource(),
-);
-    final attendanceRepo = MockAttendanceRepository();
+      authRemote,
+      authLocal,
+    );
+
+    final attendanceRepo = AttendanceRepositoryImpl(
+      attendanceRemote,
+    );
+
+    // MOCK REPOSITORIES
     final taskRepo = MockTaskRepository();
     final scheduleRepo = MockScheduleRepository();
     final leaveRepo = MockLeaveRepository();
@@ -55,108 +72,182 @@ class CheckmateApp extends StatelessWidget {
 
     return MultiRepositoryProvider(
       providers: [
-        RepositoryProvider<AuthRepository>(create: (_) => authRepo),
-        RepositoryProvider<AttendanceRepository>(create: (_) => attendanceRepo),
-        RepositoryProvider<TaskRepository>(create: (_) => taskRepo),
-        RepositoryProvider<ScheduleRepository>(create: (_) => scheduleRepo),
-        RepositoryProvider<LeaveRepository>(create: (_) => leaveRepo),
-        RepositoryProvider<TeamRepository>(create: (_) => teamRepo),
-        RepositoryProvider<NotificationRepository>(create: (_) => notifRepo),
+        RepositoryProvider<AuthRepository>(
+          create: (_) => authRepo,
+        ),
+        RepositoryProvider<AttendanceRepository>(
+          create: (_) => attendanceRepo,
+        ),
+        RepositoryProvider<TaskRepository>(
+          create: (_) => taskRepo,
+        ),
+        RepositoryProvider<ScheduleRepository>(
+          create: (_) => scheduleRepo,
+        ),
+        RepositoryProvider<LeaveRepository>(
+          create: (_) => leaveRepo,
+        ),
+        RepositoryProvider<TeamRepository>(
+          create: (_) => teamRepo,
+        ),
+        RepositoryProvider<NotificationRepository>(
+          create: (_) => notifRepo,
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
-          BlocProvider<AuthCubit>(create: (_) => AuthCubit(authRepo)),
+          // AUTH
+          BlocProvider<AuthCubit>(
+            create: (_) => AuthCubit(authRepo)..checkAuth(),
+          ),
+
+          // HOME
           BlocProvider<HomeCubit>(
-            create: (_) => HomeCubit(attendanceRepo, taskRepo, notifRepo),
+            create: (context) => HomeCubit(
+              attendanceRepo,
+              taskRepo,
+              notifRepo,
+              context.read<AuthCubit>(),
+            ),
           ),
+
+          // SCHEDULE
           BlocProvider<ScheduleCubit>(
-            create: (_) => ScheduleCubit(scheduleRepo, leaveRepo),
+            create: (_) => ScheduleCubit(
+              scheduleRepo,
+              leaveRepo,
+            ),
           ),
+
+          // HISTORY
           BlocProvider<HistoryCubit>(
             create: (_) => HistoryCubit(attendanceRepo),
           ),
-          BlocProvider<TaskCubit>(create: (_) => TaskCubit(taskRepo)),
-          BlocProvider<TeamCubit>(create: (_) => TeamCubit(teamRepo)),
+
+          // TASKS
+          BlocProvider<TaskCubit>(
+            create: (_) => TaskCubit(taskRepo),
+          ),
+
+          // TEAM
+          BlocProvider<TeamCubit>(
+            create: (_) => TeamCubit(teamRepo),
+          ),
+
+          // NOTIFICATIONS
           BlocProvider<NotificationCubit>(
             create: (_) => NotificationCubit(notifRepo),
           ),
-          BlocProvider<ProfileCubit>(create: (_) => ProfileCubit(leaveRepo)),
+
+          // PROFILE
+          BlocProvider<ProfileCubit>(
+            create: (_) => ProfileCubit(leaveRepo),
+          ),
         ],
         child: MaterialApp(
-          title: 'Checkmate',
           debugShowCheckedModeBanner: false,
+          title: 'Checkmate',
           theme: AppTheme.light,
-          home: const _RootNavigator(),
+          home: const RootNavigator(),
         ),
       ),
     );
   }
 }
 
-class _RootNavigator extends StatelessWidget {
-  const _RootNavigator();
+class RootNavigator extends StatefulWidget {
+  const RootNavigator({super.key});
+
+  @override
+  State<RootNavigator> createState() => _RootNavigatorState();
+}
+
+class _RootNavigatorState extends State<RootNavigator> {
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() async {
+      await context.read<AuthCubit>().checkAuth();
+
+      if (mounted) {
+        setState(() {
+          _initialized = true;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (!_initialized) {
+      return const SplashScreen();
+    }
+
     return BlocBuilder<AuthCubit, AuthState>(
-      builder: (ctx, state) {
-        if (state is AuthInitial) {
-          return const _SplashScreen();
-        }
+      builder: (context, state) {
         if (state is AuthAuthenticated) {
-          return ShellScreen(onLogout: () => ctx.read<AuthCubit>().logout());
+          return ShellScreen(
+            onLogout: () {
+              context.read<AuthCubit>().logout();
+            },
+          );
         }
-        // AuthUnauthenticated, AuthError
-        return LoginScreen(onSuccess: () {});
+
+        return LoginScreen(
+          onSuccess: () {},
+        );
       },
     );
   }
 }
-
-class _SplashScreen extends StatefulWidget {
-  const _SplashScreen();
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
 
   @override
-  State<_SplashScreen> createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<_SplashScreen>
+class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 900),
-  )..forward();
+  late final AnimationController _controller;
 
-  late final Animation<double> _fade = CurvedAnimation(
-    parent: _ctrl,
-    curve: Curves.easeOut,
-  );
+  late final Animation<double> _fadeAnimation;
 
-  late final Animation<double> _scale = Tween<double>(
-    begin: 0.8,
-    end: 1.0,
-  ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
+  late final Animation<double> _scaleAnimation;
 
   @override
-void initState() {
-  super.initState();
+  void initState() {
+    super.initState();
 
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-
-    Future.delayed(
-      const Duration(seconds: 2),
-      () {
-        if (mounted) {
-          context.read<AuthCubit>().checkAuth();
-        }
-      },
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
     );
-  });
-}
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutBack,
+      ),
+    );
+
+    _controller.forward();
+  }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -166,93 +257,42 @@ void initState() {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [AppColors.primary, AppColors.primaryContainer],
+            colors: [
+              AppColors.primary,
+              AppColors.primaryContainer,
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const SizedBox(),
-                FadeTransition(
-                  opacity: _fade,
-                  child: ScaleTransition(
-                    scale: _scale,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppColors.onPrimary, AppColors.primary],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(28),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withOpacity(0.28),
-                                blurRadius: 22,
-                                offset: const Offset(0, 12),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.shield_rounded,
-                            color: AppColors.onPrimary,
-                            size: 44,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Checkmate',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.onPrimary,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'Workforce attendance, simplified.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: AppColors.onPrimary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 36),
-                        const SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation(
-                              AppColors.onPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
+        child: Center(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(
+                    Icons.shield_rounded,
+                    size: 70,
+                    color: Colors.white,
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'Checkmate',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-                const Text(
-                  'Built for modern HR teams',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.onPrimary,
-                    letterSpacing: 0.15,
+                  SizedBox(height: 30),
+                  CircularProgressIndicator(
+                    color: Colors.white,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

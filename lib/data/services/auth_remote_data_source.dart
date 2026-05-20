@@ -11,13 +11,16 @@ class AuthRemoteDataSource {
   Future<AuthResponse> login({
     required String email,
     required String password,
+    
   }) async {
     // LOGIN
     final loginResponse = await dio.post(
       '/auth/login',
       data: {'email': email, 'password': password},
+      // ignore: avoid_print
+    
     );
-
+print("==========${loginResponse.data}");
     final token = loginResponse.data['data']['access_token'];
 
     // ADD TOKEN
@@ -70,7 +73,20 @@ class AuthRemoteDataSource {
       usedLeaves: data['used_leaves'] ?? 0,
     );
   }
+Future<Map<String, dynamic>> checkOut({
+  required int attendanceId,
+}) async {
 
+  final response = await dio.patch(
+    '/items/attendance/$attendanceId',
+    data: {
+      'check_out': DateTime.now().toIso8601String(),
+      'status': 'checked_out',
+    },
+  );
+
+  return response.data['data'];
+}
   Future<UserEntity> updateProfile(UserEntity user) async {
     final response = await dio.patch(
       '/users/me',

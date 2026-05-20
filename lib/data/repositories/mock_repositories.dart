@@ -4,9 +4,7 @@ import '../../core/errors/failures.dart';
 import '../../domain/entities/entities.dart';
 import '../../domain/repositories/repositories.dart';
 
-// ─────────────────────────────────────────────────────────────
-// MOCK AUTH
-// ─────────────────────────────────────────────────────────────
+// This file contains mock implementations of all repositories for testing and development purposes.
 class MockAuthRepository implements AuthRepository {
   UserEntity? _current;
 
@@ -41,8 +39,7 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<bool> isLoggedIn() async => false; // always show login on fresh start
-
+  Future<bool> isLoggedIn() async => false; 
   UserEntity _mockUser() => const UserEntity(
     id: 'usr_001', name: 'Alex Morgan', email: 'alex.morgan@company.com',
     department: 'Engineering', position: 'Senior Developer',
@@ -55,9 +52,7 @@ class MockAuthRepository implements AuthRepository {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// MOCK ATTENDANCE
-// ─────────────────────────────────────────────────────────────
+
 class MockAttendanceRepository implements AttendanceRepository {
   AttendanceEntity? _today;
   final List<AttendanceEntity> _history = _buildHistory();
@@ -85,12 +80,15 @@ class MockAttendanceRepository implements AttendanceRepository {
 
   @override
   Future<Either<Failure, AttendanceEntity>> checkIn({
-    required double lat, required double lng, required String location,
+    required String userId,
+    required double lat,
+    required double lng,
+    required String location,
   }) async {
     await Future.delayed(const Duration(seconds: 1));
     final now = DateTime.now();
     _today = AttendanceEntity(
-      id: 'att_today', userId: 'usr_001', date: now,
+      id: 'att_today', userId: userId, date: now,
       checkIn: now, status: 'checked_in', location: location, lat: lat, lng: lng,
     );
     return Right(_today!);
@@ -144,9 +142,7 @@ class MockAttendanceRepository implements AttendanceRepository {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// MOCK TASK
-// ─────────────────────────────────────────────────────────────
+
 class MockTaskRepository implements TaskRepository {
   final List<TaskEntity> _tasks = [
     TaskEntity(
@@ -230,9 +226,6 @@ class MockTaskRepository implements TaskRepository {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// MOCK SCHEDULE
-// ─────────────────────────────────────────────────────────────
 class MockScheduleRepository implements ScheduleRepository {
   @override
   Future<Either<Failure, List<ShiftEntity>>> getMonthShifts(DateTime month) async {
@@ -254,9 +247,7 @@ class MockScheduleRepository implements ScheduleRepository {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// MOCK LEAVE
-// ─────────────────────────────────────────────────────────────
+
 class MockLeaveRepository implements LeaveRepository {
   final List<LeaveEntity> _leaves = [
     LeaveEntity(
@@ -313,9 +304,7 @@ class MockLeaveRepository implements LeaveRepository {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// MOCK TEAM
-// ─────────────────────────────────────────────────────────────
+
 class MockTeamRepository implements TeamRepository {
   @override
   Future<Either<Failure, List<TeamMemberEntity>>> getTeam() async {
@@ -332,9 +321,7 @@ class MockTeamRepository implements TeamRepository {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// MOCK NOTIFICATION
-// ─────────────────────────────────────────────────────────────
+
 class MockNotificationRepository implements NotificationRepository {
   final List<NotificationEntity> _items = [
     NotificationEntity(id: 'n_001', title: 'Shift Reminder',       body: 'Your shift starts in 30 minutes at HQ - Tower A.',                          type: 'shift',    timestamp: DateTime.now().subtract(const Duration(minutes: 25))),

@@ -16,9 +16,7 @@ class AuthRepositoryImpl implements AuthRepository {
     this.localDataSource,
   );
 
-  // ─────────────────────────────────────────────
-  // LOGIN
-  // ─────────────────────────────────────────────
+ 
   @override
   Future<Either<Failure, UserEntity>> login({
     required String email,
@@ -30,8 +28,7 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
 
-      // ⚠️ IMPORTANT:
-      // remoteDataSource.login MUST return token + user
+     
       await localDataSource.saveToken(result.token);
 
       return Right(result.user);
@@ -44,9 +41,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  // ─────────────────────────────────────────────
-  // PROFILE
-  // ─────────────────────────────────────────────
+
   @override
   Future<Either<Failure, UserEntity>> getProfile() async {
     final token = await localDataSource.getToken();
@@ -67,9 +62,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  // ─────────────────────────────────────────────
-  // LOGOUT
-  // ─────────────────────────────────────────────
+  
   @override
   Future<Either<Failure, void>> logout() async {
     try {
@@ -80,18 +73,13 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  // ─────────────────────────────────────────────
-  // CHECK LOGIN STATE
-  // ─────────────────────────────────────────────
+  
   @override
   Future<bool> isLoggedIn() async {
     final token = await localDataSource.getToken();
     return token != null && token.isNotEmpty;
   }
 
-  // ─────────────────────────────────────────────
-  // UPDATE PROFILE
-  // ─────────────────────────────────────────────
   @override
   Future<Either<Failure, UserEntity>> updateProfile(
     UserEntity user,
@@ -100,11 +88,24 @@ class AuthRepositoryImpl implements AuthRepository {
       final updatedUser = await remoteDataSource.updateProfile(user);
       return Right(updatedUser);
     } on DioException catch (e) {
-      return Left(
-        ServerFailure(
-          e.message ?? 'Update failed',
-        ),
-      );
-    }
+
+  final code =
+      e.response?.data['errors']?[0]?['extensions']?['code'];
+
+  if (code == 'TOKEN_EXPIRED') {
+
+    await localDataSource.clearToken();
+
+    return Left(
+      AuthFailure('Session expired'),
+    );
+  }
+
+  return Left(
+    ServerFailure(
+      e.message ?? 'Failed to get profile',
+    ),
+  );
+}
   }
 }

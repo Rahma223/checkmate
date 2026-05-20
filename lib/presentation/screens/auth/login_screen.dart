@@ -50,7 +50,6 @@ class _LoginScreenState extends State<LoginScreen>
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
       listener: (ctx, state) {
-        if (state is AuthAuthenticated) widget.onSuccess();
         if (state is AuthError) {
           ScaffoldMessenger.of(ctx).showSnackBar(
             SnackBar(
@@ -163,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                         validator: (v) =>
-                            (v ?? '').length < 6 ? 'Min 6 characters' : null,
+                            (v ?? '').length < 3 ? 'Min 6 characters' : null,
                       ),
                       const SizedBox(height: 8),
                       Align(

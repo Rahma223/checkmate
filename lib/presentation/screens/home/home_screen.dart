@@ -9,6 +9,7 @@ import '../../widgets/common/shared_widgets.dart';
 
 class HomeScreen extends StatelessWidget {
   final VoidCallback onNotifications;
+
   const HomeScreen({super.key, required this.onNotifications});
 
   @override
@@ -27,6 +28,7 @@ class HomeScreen extends StatelessWidget {
       },
       builder: (ctx, state) {
         final user = ctx.read<AuthCubit>().currentUser;
+
         return Scaffold(
           backgroundColor: AppColors.surface,
           appBar: _buildAppBar(ctx, user, state),
@@ -197,7 +199,7 @@ class _StatusCardState extends State<_StatusCard>
     final isOut = s.isCheckedOut;
     final isBrk = s.isOnBreak;
     final busy = s.actionInProgress.isNotEmpty;
-
+    final checkOut = s.todayRecord?.checkOut;
     final statusColor = AppUtils.statusColor(s.status);
 
     return Container(
@@ -280,12 +282,13 @@ class _StatusCardState extends State<_StatusCard>
                   active: s.todayRecord?.checkIn != null,
                 ),
                 _vLine(),
+
                 _TimeCol(
                   label: 'Check Out',
-                  value: s.todayRecord?.checkOut != null
-                      ? AppUtils.formatTime(s.todayRecord!.checkOut!)
+                  value: checkOut != null
+                      ? AppUtils.formatTime(checkOut)
                       : '05:30 PM',
-                  active: s.todayRecord?.checkOut != null,
+                  active: checkOut != null,
                 ),
                 _vLine(),
                 _TimeCol(
@@ -556,6 +559,7 @@ class _TimeCol extends StatelessWidget {
 
 class _CheckedOutSummary extends StatelessWidget {
   final AttendanceEntity record;
+
   const _CheckedOutSummary({required this.record});
 
   @override
@@ -574,7 +578,9 @@ class _CheckedOutSummary extends StatelessWidget {
         ),
         _SummaryChip(
           label: 'Check Out',
-          value: AppUtils.formatTime(record.checkOut!),
+          value: record.checkOut != null
+              ? AppUtils.formatTime(record.checkOut!)
+              : '--:--',
         ),
         _SummaryChip(
           label: 'Total',
