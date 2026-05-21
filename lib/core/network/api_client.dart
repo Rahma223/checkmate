@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:checkmate/data/services/auth_local_data_source.dart';
+import 'package:checkmate/features/auth/data/services/auth_local_data_source.dart';
 
 class ApiClient {
   ApiClient._();
@@ -44,12 +44,7 @@ class ApiClient {
       ),
     );
 
-    dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-      ),
-    );
+    dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
 
     return dio;
   }
@@ -59,10 +54,7 @@ class ApiException implements Exception {
   final int statusCode;
   final String message;
 
-  const ApiException({
-    required this.statusCode,
-    required this.message,
-  });
+  const ApiException({required this.statusCode, required this.message});
 
   @override
   String toString() => 'ApiException($statusCode): $message';

@@ -10,9 +10,8 @@
         </shape>
     </item>
 
-    <item android:gravity="center">
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/ic_launcher" />
-    </item>
+    <!-- Removed launcher bitmap to avoid showing old branded image.
+         To add a custom photo for the native launch, put a PNG at
+         android/app/src/main/res/drawable/launch_image.png and add a
+         <item> with a bitmap referencing @drawable/launch_image here. -->
 </layer-list>
