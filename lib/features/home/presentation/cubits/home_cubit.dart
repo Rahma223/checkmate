@@ -139,14 +139,40 @@ class HomeCubit extends Cubit<HomeState> {
     );
   }
 
-  Future<void> checkOut() async {
-    emit(state.copyWith(actionInProgress: 'check_out'));
-    final result = await _attendanceRepo.checkOut();
-    result.fold(
-      (f) => emit(state.copyWith(error: f.message, actionInProgress: '')),
-      (r) => emit(state.copyWith(todayRecord: r, actionInProgress: '')),
-    );
-  }
+ Future<void> checkOut() async {
+
+  emit(
+    state.copyWith(
+      actionInProgress: 'checkout',
+    ),
+  );
+
+  final result =
+      await _attendanceRepo.checkOut();
+
+  result.fold(
+
+    (f) => emit(
+      state.copyWith(
+        error: f.message,
+        actionInProgress: '',
+      ),
+    ),
+
+    (r) async {
+
+      // 🔥 reload latest data
+      await load();
+
+      emit(
+        state.copyWith(
+          todayRecord: r,
+          actionInProgress: '',
+        ),
+      );
+    },
+  );
+}
 
   Future<void> startBreak(String type) async {
     emit(state.copyWith(actionInProgress: 'break'));

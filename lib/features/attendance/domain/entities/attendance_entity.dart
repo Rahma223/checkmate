@@ -1,22 +1,35 @@
 import 'package:equatable/equatable.dart';
-
 class BreakEntity extends Equatable {
+
+  final String id;
+
   final DateTime startTime;
+
   final DateTime? endTime;
+
   final String type;
 
   const BreakEntity({
+    required this.id,
     required this.startTime,
     this.endTime,
     required this.type,
   });
 
   bool get isActive => endTime == null;
+
   Duration? get duration =>
-      endTime != null ? endTime!.difference(startTime) : null;
+      endTime != null
+          ? endTime!.difference(startTime)
+          : null;
 
   @override
-  List<Object?> get props => [startTime, endTime, type];
+  List<Object?> get props => [
+        id,
+        startTime,
+        endTime,
+        type,
+      ];
 }
 
 class AttendanceEntity extends Equatable {

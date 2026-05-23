@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:checkmate/core/errors/failures.dart';
 import 'package:checkmate/domain/entities/entities.dart';
 import 'package:checkmate/domain/repositories/repositories.dart';
+import 'package:checkmate/features/attendance/data/models/attendance_model.dart';
 import 'package:checkmate/features/attendance/data/services/attendance_remote_data_source.dart';
 
 class AttendanceRepositoryImpl implements AttendanceRepository {
@@ -30,8 +31,8 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
         date: DateTime.parse(data['check_in']),
         checkIn: DateTime.parse(data['check_in']),
 
-        checkOut: data['check_out'] != null
-            ? DateTime.parse(data['check_out'])
+        checkOut: data['checkout'] != null
+            ? DateTime.parse(data['checkout'])
             : null,
 
         status: data['status']?.toString() ?? '',
@@ -47,34 +48,80 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     }
   }
 
+  @override
   Future<Either<Failure, AttendanceEntity?>> getTodayRecord() async {
     return Right(_currentAttendance);
   }
 
   @override
   Future<Either<Failure, List<AttendanceEntity>>> getHistory({
-    int page = 0,
-    int limit = 30,
+    required String userId,
   }) async {
-    return const Right([]);
+    try {
+      final data = await remoteDataSource.getHistory(userId: userId);
+
+      final history = data
+          .map<AttendanceEntity>(
+            (e) => AttendanceModel.fromJson(e as Map<String, dynamic>),
+          )
+          .toList();
+
+      return Right(history);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
   }
 
   @override
   Future<Either<Failure, MonthlyStatsEntity>> getMonthlyStats(
-    DateTime month,
-  ) async {
-    return Right(
-      MonthlyStatsEntity(
-        present: 0,
-        absent: 0,
-        late: 0,
-        onLeave: 0,
-        totalHours: 0,
-        avgHours: 0,
-        workingDays: 0,
-        overtimeHours: 0,
-      ),
-    );
+    DateTime month, {
+    required String userId,
+  }) async {
+    try {
+      final data = await remoteDataSource.getHistory(userId: userId);
+      final records = data
+          .map<AttendanceEntity>(
+            (e) => AttendanceModel.fromJson(e as Map<String, dynamic>),
+          )
+          .toList();
+      final monthRecords = records
+          .where(
+            (r) => r.date.year == month.year && r.date.month == month.month,
+          )
+          .toList();
+
+      final present = monthRecords
+          .where((r) => r.status != 'absent' && r.status != 'on_leave')
+          .length;
+      final absent = monthRecords.where((r) => r.status == 'absent').length;
+      final late = monthRecords.where((r) => r.status == 'late').length;
+      final onLeave = monthRecords.where((r) => r.status == 'on_leave').length;
+      final totalHours = monthRecords.fold<double>(
+        0.0,
+        (sum, r) => sum + r.workedHours,
+      );
+      final workingDays = monthRecords.where((r) => r.checkIn != null).length;
+      final avgHours = workingDays > 0 ? totalHours / workingDays : 0.0;
+      final overtimeHours = monthRecords.fold<double>(
+        0.0,
+        (sum, r) => sum + (r.workedHours > 8 ? r.workedHours - 8 : 0.0),
+      );
+
+      return Right(
+        MonthlyStatsEntity(
+          present: present,
+          absent: absent,
+          late: late,
+          onLeave: onLeave,
+          totalHours: totalHours,
+          avgHours: avgHours,
+          workingDays: workingDays,
+          overtimeHours: overtimeHours,
+        ),
+      );
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
   }
 
   @override
@@ -87,9 +134,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
           return Left(ServerFailure('No active attendance found'));
         }
 
-        final data = await remoteDataSource.checkOut(
-          attendanceId: int.parse(record.id),
-        );
+        final data = await remoteDataSource.checkOut(attendanceId: record.id);
 
         final attendance = AttendanceEntity(
           id: data['id']?.toString() ?? '',
@@ -97,8 +142,8 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
           date: DateTime.parse(data['check_in']),
           checkIn: DateTime.parse(data['check_in']),
 
-          checkOut: data['check_out'] != null
-              ? DateTime.parse(data['check_out'])
+          checkOut: data['checkout'] != null
+              ? DateTime.parse(data['checkout'])
               : DateTime.now(),
 
           status: data['status']?.toString() ?? '',
@@ -126,7 +171,13 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
 
       final breaks = List<BreakEntity>.from(_currentAttendance!.breaks);
 
-      breaks.add(BreakEntity(type: breakType, startTime: DateTime.now()));
+      breaks.add(
+        BreakEntity(
+          id: DateTime.now().toIso8601String(),
+          type: breakType,
+          startTime: DateTime.now(),
+        ),
+      );
 
       final updatedAttendance = AttendanceEntity(
         id: _currentAttendance!.id,
@@ -167,6 +218,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       final currentBreak = breaks[index];
 
       breaks[index] = BreakEntity(
+        id: currentBreak.id,
         type: currentBreak.type,
         startTime: currentBreak.startTime,
         endTime: DateTime.now(),

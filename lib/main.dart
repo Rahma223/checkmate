@@ -4,6 +4,7 @@ import 'package:checkmate/core/theme/app_theme.dart';
 import 'package:checkmate/features/attendance/data/repositories/attendance_repository_impl.dart';
 import 'package:checkmate/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:checkmate/features/shared/data/repositories/mock_repositories.dart';
+import 'package:checkmate/features/home/presentation/cubits/home_cubit.dart';
 
 import 'package:checkmate/features/attendance/data/services/attendance_remote_data_source.dart';
 import 'package:checkmate/features/auth/data/services/auth_local_data_source.dart';
@@ -100,7 +101,11 @@ class CheckmateApp extends StatelessWidget {
 
           // HISTORY
           BlocProvider<HistoryCubit>(
-            create: (_) => HistoryCubit(attendanceRepo),
+            create: (context) => HistoryCubit(
+              attendanceRepo,
+              context.read<AuthCubit>(),
+              context.read<HomeCubit>(),
+            ),
           ),
 
           // TASKS

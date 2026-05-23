@@ -72,8 +72,7 @@ class MockAttendanceRepository implements AttendanceRepository {
 
   @override
   Future<Either<Failure, List<AttendanceEntity>>> getHistory({
-    int page = 0,
-    int limit = 30,
+    required String userId,
   }) async {
     await Future.delayed(const Duration(milliseconds: 700));
     return Right(_history);
@@ -81,8 +80,9 @@ class MockAttendanceRepository implements AttendanceRepository {
 
   @override
   Future<Either<Failure, MonthlyStatsEntity>> getMonthlyStats(
-    DateTime month,
-  ) async {
+    DateTime month, {
+    required String userId,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     return const Right(
       MonthlyStatsEntity(
@@ -131,7 +131,13 @@ class MockAttendanceRepository implements AttendanceRepository {
   Future<Either<Failure, AttendanceEntity>> startBreak(String breakType) async {
     await Future.delayed(const Duration(milliseconds: 500));
     final breaks = List<BreakEntity>.from(_today!.breaks)
-      ..add(BreakEntity(startTime: DateTime.now(), type: breakType));
+      ..add(
+        BreakEntity(
+          id: DateTime.now().toIso8601String(),
+          startTime: DateTime.now(),
+          type: breakType,
+        ),
+      );
     _today = _today!.copyWith(status: 'on_break', breaks: breaks);
     return Right(_today!);
   }
@@ -143,6 +149,7 @@ class MockAttendanceRepository implements AttendanceRepository {
         .map(
           (b) => b.isActive
               ? BreakEntity(
+                  id: b.id,
                   startTime: b.startTime,
                   endTime: DateTime.now(),
                   type: b.type,

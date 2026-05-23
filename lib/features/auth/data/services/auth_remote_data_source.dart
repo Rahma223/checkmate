@@ -76,8 +76,8 @@ class AuthRemoteDataSource {
     final response = await dio.patch(
       '/items/attendance/$attendanceId',
       data: {
-        'check_out': DateTime.now().toIso8601String(),
-        'status': 'checked_out',
+        'checkout': DateTime.now().toIso8601String(),
+        'status': 'checkout',
       },
     );
 

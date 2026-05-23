@@ -25,6 +25,20 @@ class HistoryScreen extends StatelessWidget {
         ),
         body: state.isLoading
             ? const Center(child: CircularProgressIndicator())
+            : state.error != null
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    state.error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              )
             : Column(
                 children: [
                   if (state.stats != null) _StatsHeader(stats: state.stats!),
@@ -259,102 +273,172 @@ class _RecordList extends StatelessWidget {
 }
 
 class _RecordTile extends StatelessWidget {
+
   final AttendanceEntity record;
-  const _RecordTile({required this.record});
+
+  const _RecordTile({
+    required this.record,
+  });
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: () => showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  Widget build(BuildContext context) {
+
+    print('========== HISTORY RECORD ==========');
+    print('STATUS: ${record.status}');
+    print('CHECK IN: ${record.checkIn}');
+    print('CHECK OUT: ${record.checkOut}');
+    print('====================================');
+
+    return GestureDetector(
+
+      onTap: () => showModalBottomSheet(
+        context: context,
+        backgroundColor: AppColors.surfaceContainerLowest,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(24),
+          ),
+        ),
+        builder: (_) => _DetailSheet(
+          record: record,
+        ),
       ),
-      builder: (_) => _DetailSheet(record: record),
-    ),
-    child: Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.outlineVariant, width: 0.5),
-      ),
-      child: Row(
-        children: [
-          _DateBlock(record: record),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      AppUtils.formatDayName(record.date),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
-                      ),
-                    ),
-                    const Spacer(),
-                    StatusBadge(status: record.status, small: true),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                if (record.checkIn != null)
+
+      child: Container(
+        padding: const EdgeInsets.all(14),
+
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppColors.outlineVariant,
+            width: 0.5,
+          ),
+        ),
+
+        child: Row(
+          children: [
+
+            _DateBlock(record: record),
+
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+
+                children: [
+
                   Row(
                     children: [
-                      _TimeChip(
-                        icon: Icons.login_outlined,
-                        time: AppUtils.formatTime(record.checkIn!),
-                        color: AppColors.success,
-                      ),
-                      if (record.checkOut != null) ...[
-                        const SizedBox(width: 8),
-                        _TimeChip(
-                          icon: Icons.logout_outlined,
-                          time: AppUtils.formatTime(record.checkOut!),
-                          color: AppColors.error,
+
+                      Text(
+                        AppUtils.formatDayName(
+                          record.date,
                         ),
-                      ],
+
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+
+                      const Spacer(),
+
+                      StatusBadge(
+                        status: record.status,
+                        small: true,
+                      ),
                     ],
-                  )
-                else
-                  Text(
-                    record.status == 'on_leave'
-                        ? 'On Leave'
-                        : 'No check-in recorded',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.outline,
-                    ),
                   ),
-                if (record.workedHours > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Text(
-                      '${AppUtils.formatHours(record.workedHours)} • ${record.location}',
+
+                  const SizedBox(height: 4),
+
+                  if (record.checkIn != null)
+
+                    Row(
+                      children: [
+
+                        _TimeChip(
+                          icon:
+                              Icons.login_outlined,
+
+                          time:
+                              AppUtils.formatTime(
+                                record.checkIn!,
+                              ),
+
+                          color:
+                              AppColors.success,
+                        ),
+
+                        if (record.checkOut != null) ...[
+
+                          const SizedBox(width: 8),
+
+                          _TimeChip(
+                            icon:
+                                Icons.logout_outlined,
+
+                            time:
+                                AppUtils.formatTime(
+                                  record.checkOut!,
+                                ),
+
+                            color:
+                                AppColors.error,
+                          ),
+                        ],
+                      ],
+                    )
+
+                  else
+
+                    Text(
+                      record.status == 'on_leave'
+                          ? 'On Leave'
+                          : 'No check-in recorded',
+
                       style: const TextStyle(
-                        fontSize: 10,
+                        fontSize: 11,
                         color: AppColors.outline,
                       ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            size: 18,
-            color: AppColors.outline,
-          ),
-        ],
-      ),
-    ),
-  );
-}
 
+                  if (record.workedHours > 0)
+
+                    Padding(
+                      padding:
+                          const EdgeInsets.only(
+                            top: 3,
+                          ),
+
+                      child: Text(
+                        '${AppUtils.formatHours(record.workedHours)} • ${record.location}',
+
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.outline,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: AppColors.outline,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 class _DateBlock extends StatelessWidget {
   final AttendanceEntity record;
   const _DateBlock({required this.record});
