@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-class BreakEntity extends Equatable {
 
+class BreakEntity extends Equatable {
   final String id;
 
   final DateTime startTime;
@@ -19,17 +19,10 @@ class BreakEntity extends Equatable {
   bool get isActive => endTime == null;
 
   Duration? get duration =>
-      endTime != null
-          ? endTime!.difference(startTime)
-          : null;
+      endTime != null ? endTime!.difference(startTime) : null;
 
   @override
-  List<Object?> get props => [
-        id,
-        startTime,
-        endTime,
-        type,
-      ];
+  List<Object?> get props => [id, startTime, endTime, type];
 }
 
 class AttendanceEntity extends Equatable {
@@ -59,17 +52,41 @@ class AttendanceEntity extends Equatable {
     this.breaks = const [],
   });
 
+  Duration get totalDuration {
+    if (checkIn == null) return Duration.zero;
+    final endTime = checkOut ?? DateTime.now();
+    return endTime.difference(checkIn!);
+  }
+
+  Duration get breakDuration {
+    final dayEnd = checkOut ?? DateTime.now();
+    final dayStart = checkIn ?? DateTime.fromMillisecondsSinceEpoch(0);
+    return breaks.fold<Duration>(Duration.zero, (sum, b) {
+      var start = b.startTime;
+      var end = b.endTime ?? dayEnd;
+
+      // clamp break interval to the attendance window [dayStart, dayEnd]
+      if (start.isBefore(dayStart)) start = dayStart;
+      if (end.isAfter(dayEnd)) end = dayEnd;
+
+      final diff = end.difference(start);
+      if (diff.isNegative) return sum;
+      return sum + diff;
+    });
+  }
+
   Duration get workedDuration {
-    if (checkIn == null || checkOut == null) return Duration.zero;
-    final total = checkOut!.difference(checkIn!);
-    final breakTime = breaks.fold<Duration>(
-      Duration.zero,
-      (s, b) => s + (b.duration ?? Duration.zero),
-    );
-    return total - breakTime;
+    if (checkIn == null) return Duration.zero;
+    final worked = totalDuration - breakDuration;
+    return worked.isNegative ? Duration.zero : worked;
   }
 
   double get workedHours => workedDuration.inMinutes / 60.0;
+
+  double attendancePct([double expectedHours = 8.5]) {
+    if (expectedHours <= 0) return 0;
+    return (workedHours / expectedHours * 100).clamp(0, 100);
+  }
 
   AttendanceEntity copyWith({
     DateTime? checkIn,

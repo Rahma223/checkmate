@@ -173,6 +173,11 @@ class _RootNavigatorState extends State<RootNavigator> {
         if (state is AuthAuthenticated) {
           return ShellScreen(
             onLogout: () {
+              // Clear attendance cache in repository before logging out
+              try {
+                (context.read<AttendanceRepository>() as dynamic).clearCache();
+              } catch (_) {}
+
               context.read<AuthCubit>().logout();
             },
           );

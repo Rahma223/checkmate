@@ -57,6 +57,8 @@ class HistoryCubit extends Cubit<HistoryState> {
     _authSubscription = _authCubit.stream.listen((state) {
       if (state is AuthAuthenticated) {
         load();
+      } else if (state is AuthUnauthenticated) {
+        emit(const HistoryState());
       }
     });
 
@@ -90,7 +92,7 @@ class HistoryCubit extends Cubit<HistoryState> {
 
     emit(state.copyWith(isLoading: true, error: null));
     final results = await Future.wait([
-      _repo.getHistory(userId: userId),
+      _repo.getHistory(userId: userId, status: state.filterStatus),
       _repo.getMonthlyStats(DateTime.now(), userId: userId),
     ]);
 
@@ -109,7 +111,10 @@ class HistoryCubit extends Cubit<HistoryState> {
     );
   }
 
-  void setFilter(String status) => emit(state.copyWith(filterStatus: status));
+  void setFilter(String status) {
+    emit(state.copyWith(filterStatus: status));
+    load();
+  }
 
   @override
   Future<void> close() {

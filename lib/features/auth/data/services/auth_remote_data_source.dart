@@ -21,11 +21,14 @@ class AuthRemoteDataSource {
     print("==========${loginResponse.data}");
     final token = loginResponse.data['data']['access_token'];
 
-    // ADD TOKEN
+    // ADD TOKEN for the current dio client and current request
     dio.options.headers['Authorization'] = 'Bearer $token';
 
     // GET CURRENT USER
-    final userResponse = await dio.get('/users/me');
+    final userResponse = await dio.get(
+      '/users/me',
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
 
     final data = userResponse.data['data'];
 

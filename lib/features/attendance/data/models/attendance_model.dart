@@ -34,21 +34,40 @@ class AttendanceModel extends AttendanceEntity {
       lat: (json['lat'] as num?)?.toDouble(),
       lng: (json['lng'] as num?)?.toDouble(),
       notes: json['notes']?.toString(),
-      breaks:
-          (json['breaks'] as List<dynamic>?)?.map((b) {
-            final map = b as Map<String, dynamic>;
+      breaks: (() {
+        final raw = json['breaks'] ?? json['attendance_breaks'];
+        if (raw is! List) return <BreakEntity>[];
+        return raw.map<BreakEntity>((e) {
+          if (e is Map) {
+            final map = e as Map<String, dynamic>;
+            final start =
+                DateTime.tryParse(map['start_time']?.toString() ?? '') ??
+                DateTime.tryParse(json['check_in']?.toString() ?? '') ??
+                DateTime.now();
+            final end = map['end_time'] != null
+                ? DateTime.tryParse(map['end_time']?.toString() ?? '')
+                : null;
             return BreakEntity(
               id: map['id']?.toString() ?? '',
+              startTime: start,
+              endTime: end,
               type: map['type']?.toString() ?? '',
-              startTime: map['start_time'] != null
-                  ? DateTime.parse(map['start_time'])
-                  : DateTime.now(),
-              endTime: map['end_time'] != null
-                  ? DateTime.parse(map['end_time'])
-                  : null,
             );
-          }).toList() ??
-          const [],
+          }
+
+          // If break item is an id (int/string) or unexpected type, create a placeholder
+          final id = e?.toString() ?? DateTime.now().toIso8601String();
+          final fallbackStart =
+              DateTime.tryParse(json['check_in']?.toString() ?? '') ??
+              DateTime.now();
+          return BreakEntity(
+            id: id,
+            startTime: fallbackStart,
+            endTime: null,
+            type: '',
+          );
+        }).toList();
+      }()),
     );
   }
 }

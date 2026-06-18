@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:checkmate/features/auth/presentation/cubits/auth_cubit.dart';
@@ -6,6 +8,7 @@ import 'package:checkmate/domain/repositories/repositories.dart';
 
 class HomeState extends Equatable {
   final AttendanceEntity? todayRecord;
+  final MonthlyStatsEntity? monthlyStats;
   final List<TaskEntity> tasks;
   final bool isLoading;
   final bool isSyncing;
@@ -16,6 +19,7 @@ class HomeState extends Equatable {
 
   const HomeState({
     this.todayRecord,
+    this.monthlyStats,
     this.tasks = const [],
     this.isLoading = true,
     this.isSyncing = true,
@@ -32,6 +36,7 @@ class HomeState extends Equatable {
 
   HomeState copyWith({
     AttendanceEntity? todayRecord,
+    MonthlyStatsEntity? monthlyStats,
     List<TaskEntity>? tasks,
     bool? isLoading,
     bool? isSyncing,
@@ -42,6 +47,7 @@ class HomeState extends Equatable {
     bool clearRecord = false,
   }) => HomeState(
     todayRecord: clearRecord ? null : (todayRecord ?? this.todayRecord),
+    monthlyStats: monthlyStats ?? this.monthlyStats,
     tasks: tasks ?? this.tasks,
     isLoading: isLoading ?? this.isLoading,
     isSyncing: isSyncing ?? this.isSyncing,
@@ -54,6 +60,7 @@ class HomeState extends Equatable {
   @override
   List<Object?> get props => [
     todayRecord,
+    monthlyStats,
     tasks,
     isLoading,
     isSyncing,
@@ -69,6 +76,7 @@ class HomeCubit extends Cubit<HomeState> {
   final TaskRepository _taskRepo;
   final NotificationRepository _notifRepo;
   final AuthCubit _authCubit;
+  late final StreamSubscription _authSubscription;
 
   HomeCubit(
     this._attendanceRepo,
@@ -76,13 +84,48 @@ class HomeCubit extends Cubit<HomeState> {
     this._notifRepo,
     this._authCubit,
   ) : super(const HomeState()) {
-    load();
+    _authSubscription = _authCubit.stream.listen((authState) {
+      if (authState is AuthAuthenticated) {
+        load();
+      } else if (authState is AuthUnauthenticated) {
+        // Clear attendance cache and reset home state when user logs out
+        try {
+          // AttendanceRepositoryImpl exposes clearCache()
+          if (_attendanceRepo is dynamic) {
+            try {
+              (_attendanceRepo as dynamic).clearCache();
+            } catch (_) {}
+          }
+        } catch (_) {}
+
+        emit(const HomeState());
+      }
+    });
+
+    if (_authCubit.state is AuthAuthenticated) {
+      load();
+    }
+  }
+
+  @override
+  Future<void> close() {
+    _authSubscription.cancel();
+    return super.close();
   }
 
   Future<void> load() async {
     emit(state.copyWith(isLoading: true, isSyncing: true));
+
+    final authState = _authCubit.state;
+    if (authState is! AuthAuthenticated) {
+      emit(state.copyWith(isLoading: false, isSyncing: false));
+      return;
+    }
+
+    print('HomeCubit.load: user=${authState.user.id}');
+
     final results = await Future.wait([
-      _attendanceRepo.getTodayRecord(),
+      _attendanceRepo.getTodayRecord(userId: authState.user.id),
       _taskRepo.getTasks(),
       _notifRepo.getAll(),
     ]);
@@ -109,6 +152,16 @@ class HomeCubit extends Cubit<HomeState> {
         unreadNotifications: unread,
       ),
     );
+    print(
+      'HomeCubit.load: todayRecord=${todayRecord?.id}, breaks=${todayRecord?.breaks.length ?? 0}',
+    );
+
+    // Fetch monthly stats for authenticated user
+    final statsResult = await _attendanceRepo.getMonthlyStats(
+      DateTime.now(),
+      userId: authState.user.id,
+    );
+    statsResult.fold((_) => null, (r) => emit(state.copyWith(monthlyStats: r)));
 
     await Future.delayed(const Duration(seconds: 3));
     emit(state.copyWith(isSyncing: false));
@@ -139,44 +192,39 @@ class HomeCubit extends Cubit<HomeState> {
     );
   }
 
- Future<void> checkOut() async {
+  Future<void> checkOut() async {
+    emit(state.copyWith(actionInProgress: 'checkout'));
 
-  emit(
-    state.copyWith(
-      actionInProgress: 'checkout',
-    ),
-  );
+    final authState = _authCubit.state;
+    if (authState is! AuthAuthenticated) {
+      emit(state.copyWith(error: 'User not logged in', actionInProgress: ''));
+      return;
+    }
 
-  final result =
-      await _attendanceRepo.checkOut();
+    final result = await _attendanceRepo.checkOut(userId: authState.user.id);
 
-  result.fold(
-
-    (f) => emit(
-      state.copyWith(
-        error: f.message,
-        actionInProgress: '',
-      ),
-    ),
-
-    (r) async {
-
-      // 🔥 reload latest data
-      await load();
-
-      emit(
-        state.copyWith(
-          todayRecord: r,
-          actionInProgress: '',
-        ),
-      );
-    },
-  );
-}
+    result.fold(
+      (f) => emit(state.copyWith(error: f.message, actionInProgress: '')),
+      (r) async {
+        await load();
+        emit(state.copyWith(todayRecord: r, actionInProgress: ''));
+      },
+    );
+  }
 
   Future<void> startBreak(String type) async {
     emit(state.copyWith(actionInProgress: 'break'));
-    final result = await _attendanceRepo.startBreak(type);
+
+    final authState = _authCubit.state;
+    if (authState is! AuthAuthenticated) {
+      emit(state.copyWith(error: 'User not logged in', actionInProgress: ''));
+      return;
+    }
+
+    final result = await _attendanceRepo.startBreak(
+      type,
+      userId: authState.user.id,
+    );
     result.fold(
       (f) => emit(state.copyWith(error: f.message, actionInProgress: '')),
       (r) => emit(state.copyWith(todayRecord: r, actionInProgress: '')),
@@ -185,7 +233,14 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> endBreak() async {
     emit(state.copyWith(actionInProgress: 'break'));
-    final result = await _attendanceRepo.endBreak();
+
+    final authState = _authCubit.state;
+    if (authState is! AuthAuthenticated) {
+      emit(state.copyWith(error: 'User not logged in', actionInProgress: ''));
+      return;
+    }
+
+    final result = await _attendanceRepo.endBreak(userId: authState.user.id);
     result.fold(
       (f) => emit(state.copyWith(error: f.message, actionInProgress: '')),
       (r) => emit(state.copyWith(todayRecord: r, actionInProgress: '')),

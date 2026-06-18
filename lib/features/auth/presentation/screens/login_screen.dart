@@ -13,8 +13,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final _emailCtrl = TextEditingController(text: 'alex.morgan@company.com');
-  final _passwordCtrl = TextEditingController(text: 'password123');
+  final _emailCtrl = TextEditingController(text: 'rahma@test.com');
+  final _passwordCtrl = TextEditingController(text: '12345678');
   final _formKey = GlobalKey<FormState>();
   bool _hidePass = true;
 
@@ -224,8 +224,8 @@ class _LoginScreenState extends State<LoginScreen>
                           children: [
                             GestureDetector(
                               onTap: () => context.read<AuthCubit>().login(
-                                'alex.morgan@company.com',
-                                'password123',
+                                'rahma@test.com',
+                                '12345678',
                               ),
                               child: Container(
                                 width: 60,

@@ -24,10 +24,15 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          final currentAuth = options.headers['Authorization'];
           final token = await AuthLocalDataSource().getToken();
 
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
+          if (currentAuth == null || currentAuth.toString().isEmpty) {
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            } else {
+              options.headers.remove('Authorization');
+            }
           }
 
           handler.next(options);
@@ -37,6 +42,7 @@ class ApiClient {
           // TOKEN EXPIRED
           if (e.response?.statusCode == 401) {
             await AuthLocalDataSource().clearToken();
+            dio.options.headers.remove('Authorization');
           }
 
           handler.next(e);

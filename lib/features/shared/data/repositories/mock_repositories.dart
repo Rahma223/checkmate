@@ -46,7 +46,7 @@ class MockAuthRepository implements AuthRepository {
   UserEntity _mockUser() => const UserEntity(
     id: 'usr_001',
     name: 'Alex Morgan',
-    email: 'alex.morgan@company.com',
+    email: 'rahma@test.com',
     department: 'Engineering',
     position: 'Senior Developer',
     employeeId: 'EMP-2024-001',
@@ -65,7 +65,9 @@ class MockAttendanceRepository implements AttendanceRepository {
   final List<AttendanceEntity> _history = _buildHistory();
 
   @override
-  Future<Either<Failure, AttendanceEntity?>> getTodayRecord() async {
+  Future<Either<Failure, AttendanceEntity?>> getTodayRecord({
+    required String userId,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 600));
     return Right(_today);
   }
@@ -73,9 +75,12 @@ class MockAttendanceRepository implements AttendanceRepository {
   @override
   Future<Either<Failure, List<AttendanceEntity>>> getHistory({
     required String userId,
+    String? status,
   }) async {
     await Future.delayed(const Duration(milliseconds: 700));
-    return Right(_history);
+    if (status == null || status == 'all') return Right(_history);
+    final filtered = _history.where((r) => r.status == status).toList();
+    return Right(filtered);
   }
 
   @override
@@ -121,14 +126,19 @@ class MockAttendanceRepository implements AttendanceRepository {
   }
 
   @override
-  Future<Either<Failure, AttendanceEntity>> checkOut() async {
+  Future<Either<Failure, AttendanceEntity>> checkOut({
+    required String userId,
+  }) async {
     await Future.delayed(const Duration(seconds: 1));
     _today = _today!.copyWith(checkOut: DateTime.now(), status: 'checked_out');
     return Right(_today!);
   }
 
   @override
-  Future<Either<Failure, AttendanceEntity>> startBreak(String breakType) async {
+  Future<Either<Failure, AttendanceEntity>> startBreak(
+    String breakType, {
+    required String userId,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 500));
     final breaks = List<BreakEntity>.from(_today!.breaks)
       ..add(
@@ -143,7 +153,9 @@ class MockAttendanceRepository implements AttendanceRepository {
   }
 
   @override
-  Future<Either<Failure, AttendanceEntity>> endBreak() async {
+  Future<Either<Failure, AttendanceEntity>> endBreak({
+    required String userId,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 500));
     final breaks = _today!.breaks
         .map(

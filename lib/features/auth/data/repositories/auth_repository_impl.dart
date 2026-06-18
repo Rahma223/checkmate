@@ -51,6 +51,12 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, void>> logout() async {
     try {
       await localDataSource.clearToken();
+      // ensure Dio client does not keep stale Authorization header
+      try {
+        (remoteDataSource as dynamic).dio.options.headers.remove(
+          'Authorization',
+        );
+      } catch (_) {}
       return const Right(null);
     } catch (e) {
       return Left(AuthFailure('Logout failed'));
