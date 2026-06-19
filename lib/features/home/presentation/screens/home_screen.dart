@@ -6,6 +6,7 @@ import 'package:checkmate/core/utils/app_utils.dart';
 import 'package:checkmate/domain/entities/entities.dart';
 import 'package:checkmate/presentation/cubits/cubits.dart';
 import 'package:checkmate/presentation/widgets/common/shared_widgets.dart';
+import 'map_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final VoidCallback onNotifications;
@@ -46,6 +47,15 @@ class HomeScreen extends StatelessWidget {
                       ],
                       _GreetingSection(user: user),
                       const SizedBox(height: 20),
+                      _MapPreviewCard(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MapDetailScreen(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
                       _StatusCard(state: state),
                       const SizedBox(height: 14),
                       if (state.isCheckedIn && state.actionInProgress.isEmpty)
@@ -168,6 +178,97 @@ class _GreetingSection extends StatelessWidget {
         style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
       ),
     ],
+  );
+}
+
+class _MapPreviewCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _MapPreviewCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => BlocBuilder<HomeCubit, HomeState>(
+    builder: (ctx, state) => GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 160,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.outlineVariant, width: 0.5),
+        ),
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                color: AppColors.surfaceContainerHigh,
+                child: Center(
+                  child: Icon(
+                    Icons.map_rounded,
+                    size: 56,
+                    color: AppColors.outlineVariant,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 12,
+              top: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, size: 14),
+                    const SizedBox(width: 8),
+                    Text(
+                      state.todayRecord?.location ?? 'Inside Workspace',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              right: 12,
+              bottom: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'View Map',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
   );
 }
 
@@ -707,13 +808,8 @@ class _TodaySummaryGrid extends StatelessWidget {
           icon: Icons.free_breakfast_outlined,
           iconColor: AppColors.warning,
           label: 'Break Time',
-          value: record != null && record.breaks.isNotEmpty
-              ? AppUtils.formatDuration(
-                  record.breaks.fold(
-                    Duration.zero,
-                    (s, b) => s + (b.duration ?? Duration.zero),
-                  ),
-                )
+          value: record != null
+              ? AppUtils.formatDuration(record.breakDuration)
               : '--',
           sub: '${record?.breaks.length ?? 0} break(s)',
         ),
@@ -721,7 +817,9 @@ class _TodaySummaryGrid extends StatelessWidget {
           icon: Icons.event_available_rounded,
           iconColor: AppColors.tertiary,
           label: 'Attendance',
-          value: '94%',
+          value: state.monthlyStats != null
+              ? '${state.monthlyStats!.attendancePct.toStringAsFixed(0)}%'
+              : '--',
           sub: 'This month',
         ),
       ],

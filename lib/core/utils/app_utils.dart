@@ -123,4 +123,15 @@ class AppUtils {
     if (pct >= 75) return AppColors.warning;
     return AppColors.error;
   }
+
+  // ── Number formatting ───────────────────────────────────
+  static String formatNumber(double value, {int decimals = 1, bool trimTrailingZeros = true}) {
+    final s = value.toStringAsFixed(decimals);
+    if (!trimTrailingZeros) return s;
+    if (s.contains('.')) {
+      return s.replaceFirst(RegExp(r"\.?0+\$"), '');
+    }
+    return s;
+  }
 }
+
