@@ -17,45 +17,29 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   // =========================
   void clearCache() => _currentAttendance = null;
 
-  AttendanceEntity _map(Map<String, dynamic> json) {
-    return AttendanceModel.fromJson(json);
-  }
+  AttendanceEntity _mergeCachedBreaks(AttendanceEntity attendance) {
+    final cached = _currentAttendance;
 
-  // =========================
-  // GET TODAY (PRIVATE)
-  // =========================
-  Future<Either<Failure, AttendanceEntity?>> _getToday(String userId) async {
-    try {
-      final data = await remoteDataSource.getTodayRecord(userId: userId);
-
-      if (data == null) return const Right(null);
-
-      final attendance = _map(data);
-      _currentAttendance = attendance;
-
-      return Right(attendance);
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
+    if (cached == null ||
+        cached.id != attendance.id ||
+        attendance.breaks.isNotEmpty ||
+        cached.breaks.isEmpty) {
+      return attendance;
     }
+
+    return attendance.copyWith(breaks: cached.breaks);
   }
 
-  // =========================
-  // WRAPPER FOR TODAY RECORD
-  // =========================
-  Future<Either<Failure, T>> _withToday<T>(
-    String userId,
-    Future<Either<Failure, T>> Function(AttendanceEntity record) action,
-  ) async {
-    final result = await _getToday(userId);
-
-    return result.fold(
-      (f) => Left(f),
-      (record) async {
-        if (record == null) {
-          return Left(ServerFailure('No active attendance found'));
-        }
-        return await action(record);
-      },
+  BreakEntity _breakFromJson(Map<String, dynamic> json) {
+    return BreakEntity(
+      id: json['id']?.toString() ?? '',
+      type: json['type']?.toString() ?? '',
+      startTime: json['start_time'] != null
+          ? DateTime.parse(json['start_time'])
+          : DateTime.now(),
+      endTime: json['end_time'] != null
+          ? DateTime.parse(json['end_time'])
+          : null,
     );
   }
 
@@ -98,7 +82,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
         return const Right(null);
       }
 
-      final attendance = AttendanceModel.fromJson(data);
+      final attendance = _mergeCachedBreaks(AttendanceModel.fromJson(data));
       print(
         'AttendanceRepositoryImpl.getTodayRecord: loaded record=${attendance.id} breaks=${attendance.breaks.length}',
       );
@@ -171,9 +155,9 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       final workingDays = monthRecords.where((r) => r.checkIn != null).length;
       final avgHours = workingDays > 0 ? totalHours / workingDays : 0.0;
       final overtimeHours = monthRecords.fold<double>(
-            0.0,
+        0.0,
         (sum, r) => sum + (r.workedHours > 8 ? r.workedHours - 8 : 0.0),
-          );
+      );
 
       return Right(
         MonthlyStatsEntity(
@@ -208,28 +192,26 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
         print(
           'AttendanceRepositoryImpl.checkOut: user=$userId attendance=${record.id}',
         );
-        final data = await remoteDataSource.checkOut(attendanceId: record.id);
+        await remoteDataSource.checkOut(attendanceId: record.id);
 
-        final attendance = AttendanceEntity(
-          id: data['id']?.toString() ?? '',
-          userId: data['user']?.toString() ?? '',
-          date: DateTime.parse(data['check_in']),
-          checkIn: DateTime.parse(data['check_in']),
+        final refreshedResult = await getTodayRecord(userId: userId);
 
-          checkOut: data['checkout'] != null
-              ? DateTime.parse(data['checkout'])
-              : DateTime.now(),
+        return refreshedResult.fold((f) => Left(f), (refreshed) {
+          if (refreshed == null) {
+            return Left(ServerFailure('Failed to refresh attendance'));
+          }
 
-          status: data['status']?.toString() ?? '',
-          location: data['location']?.toString() ?? '',
+          final attendance = refreshed.copyWith(
+            status: 'checked_out',
+            breaks: refreshed.breaks.isNotEmpty
+                ? refreshed.breaks
+                : record.breaks,
+          );
 
-          lat: (data['lat'] as num?)?.toDouble() ?? 0.0,
-          lng: (data['lng'] as num?)?.toDouble() ?? 0.0,
-        );
+          _currentAttendance = attendance;
 
-        _currentAttendance = attendance;
-
-        return Right(attendance);
+          return Right(attendance);
+        });
       });
     } catch (e) {
       return Left(ServerFailure(e.toString()));
@@ -252,9 +234,9 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
 
         // Save break to backend
         final breakData = await remoteDataSource.startBreak(
-        attendanceId: record.id,
-        type: breakType,
-      );
+          attendanceId: record.id,
+          type: breakType,
+        );
 
         // Refetch the full attendance record to get all breaks from backend
         final refreshResult = await getTodayRecord(userId: userId);
@@ -262,9 +244,13 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
         return await refreshResult.fold((f) async => Left(f), (
           refreshed,
         ) async {
-      if (refreshed == null) {
-        return Left(ServerFailure('Failed to refresh attendance'));
-      }
+          if (refreshed == null) {
+            return Left(ServerFailure('Failed to refresh attendance'));
+          }
+
+          final refreshedBreaks = refreshed.breaks.isNotEmpty
+              ? refreshed.breaks
+              : [...record.breaks, _breakFromJson(breakData)];
 
           final updatedAttendance = AttendanceEntity(
             id: refreshed.id,
@@ -276,13 +262,13 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
             location: refreshed.location,
             lat: refreshed.lat,
             lng: refreshed.lng,
-            breaks: refreshed.breaks,
+            breaks: refreshedBreaks,
           );
 
           _currentAttendance = updatedAttendance;
 
           return Right(updatedAttendance);
-    });
+        });
       });
     } catch (e) {
       return Left(ServerFailure(e.toString()));
@@ -298,33 +284,49 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       final todayResult = await getTodayRecord(userId: userId);
 
       return await todayResult.fold((f) async => Left(f), (record) async {
-          if (record == null) {
-            return Left(ServerFailure('No active attendance found'));
-          }
+        if (record == null) {
+          return Left(ServerFailure('No active attendance found'));
+        }
 
         final breaks = List<BreakEntity>.from(record.breaks);
         final index = breaks.lastIndexWhere((b) => b.endTime == null);
+        late final Map<String, dynamic> endedBreakData;
 
         if (index == -1) {
           // No active break found locally; try querying backend
           final active = await remoteDataSource.getActiveBreak(
-              attendanceId: record.id,
-            );
+            attendanceId: record.id,
+          );
           if (active == null) {
-              return Left(ServerFailure('No active break found'));
-            }
+            return Left(ServerFailure('No active break found'));
+          }
 
           // End the active break on backend
-            await remoteDataSource.endBreak(
+          endedBreakData = await remoteDataSource.endBreak(
             breakId: active['id']?.toString() ?? '',
-            );
-          } else {
+          );
+        } else {
           // End the active break in local list
           final currentBreak = breaks[index];
 
           // Save break end time to backend
-          await remoteDataSource.endBreak(breakId: currentBreak.id);
-          }
+          endedBreakData = await remoteDataSource.endBreak(
+            breakId: currentBreak.id,
+          );
+        }
+
+        final endedBreak = _breakFromJson(endedBreakData);
+        final endedIndex = breaks.indexWhere((b) => b.id == endedBreak.id);
+        if (endedIndex == -1) {
+          breaks.add(endedBreak);
+        } else {
+          breaks[endedIndex] = endedBreak;
+        }
+
+        _currentAttendance = record.copyWith(
+          status: 'checked_in',
+          breaks: breaks,
+        );
 
         // Refetch the full attendance record to get all updated breaks from backend
         final refreshResult = await getTodayRecord(userId: userId);

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:checkmate/core/services/geofence_service.dart';
 import 'package:checkmate/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:checkmate/domain/entities/entities.dart';
 import 'package:checkmate/domain/repositories/repositories.dart';
@@ -76,6 +77,7 @@ class HomeCubit extends Cubit<HomeState> {
   final TaskRepository _taskRepo;
   final NotificationRepository _notifRepo;
   final AuthCubit _authCubit;
+  final GeofenceService _geofenceService;
   late final StreamSubscription _authSubscription;
 
   HomeCubit(
@@ -83,6 +85,7 @@ class HomeCubit extends Cubit<HomeState> {
     this._taskRepo,
     this._notifRepo,
     this._authCubit,
+    this._geofenceService,
   ) : super(const HomeState()) {
     _authSubscription = _authCubit.stream.listen((authState) {
       if (authState is AuthAuthenticated) {
@@ -178,6 +181,29 @@ class HomeCubit extends Cubit<HomeState> {
     }
 
     final userId = authState.user.id;
+
+    try {
+      final isInsideGeofence = await _geofenceService.isInsideGeofence(
+        authState.user,
+      );
+
+      if (!isInsideGeofence) {
+        emit(
+          state.copyWith(
+            isInsideGeofence: false,
+            error: 'You are outside the allowed work area.',
+            actionInProgress: '',
+          ),
+        );
+        return;
+      }
+
+      emit(state.copyWith(isInsideGeofence: true));
+    } catch (e) {
+      final message = e.toString().replaceFirst('Exception: ', '');
+      emit(state.copyWith(error: message, actionInProgress: ''));
+      return;
+    }
 
     final result = await _attendanceRepo.checkIn(
       userId: userId,

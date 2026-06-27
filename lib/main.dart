@@ -1,10 +1,10 @@
 import 'package:checkmate/core/network/api_client.dart';
+import 'package:checkmate/core/services/geofence_service.dart';
 import 'package:checkmate/core/theme/app_theme.dart';
 
 import 'package:checkmate/features/attendance/data/repositories/attendance_repository_impl.dart';
 import 'package:checkmate/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:checkmate/features/shared/data/repositories/mock_repositories.dart';
-import 'package:checkmate/features/home/presentation/cubits/home_cubit.dart';
 
 import 'package:checkmate/features/attendance/data/services/attendance_remote_data_source.dart';
 import 'package:checkmate/features/auth/data/services/auth_local_data_source.dart';
@@ -54,6 +54,7 @@ class CheckmateApp extends StatelessWidget {
     final authRemote = AuthRemoteDataSource(apiClient);
 
     final attendanceRemote = AttendanceRemoteDataSource(apiClient);
+    final geofenceService = GeofenceService();
 
     // REPOSITORIES
     final authRepo = AuthRepositoryImpl(authRemote, authLocal);
@@ -71,6 +72,7 @@ class CheckmateApp extends StatelessWidget {
       providers: [
         RepositoryProvider<AuthRepository>(create: (_) => authRepo),
         RepositoryProvider<AttendanceRepository>(create: (_) => attendanceRepo),
+        RepositoryProvider<GeofenceService>(create: (_) => geofenceService),
         RepositoryProvider<TaskRepository>(create: (_) => taskRepo),
         RepositoryProvider<ScheduleRepository>(create: (_) => scheduleRepo),
         RepositoryProvider<LeaveRepository>(create: (_) => leaveRepo),
@@ -91,6 +93,7 @@ class CheckmateApp extends StatelessWidget {
               taskRepo,
               notifRepo,
               context.read<AuthCubit>(),
+              context.read<GeofenceService>(),
             ),
           ),
 

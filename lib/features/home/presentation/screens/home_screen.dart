@@ -17,6 +17,20 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<HomeCubit, HomeState>(
+      listenWhen: (previous, current) {
+        final hasNewError =
+            current.error != null &&
+            current.error!.isNotEmpty &&
+            previous.error != current.error;
+        final completedCheckIn =
+            previous.actionInProgress == 'check_in' &&
+            current.actionInProgress.isEmpty &&
+            (current.error == null || current.error!.isEmpty) &&
+            current.isCheckedIn &&
+            current.isInsideGeofence;
+
+        return hasNewError || completedCheckIn;
+      },
       listener: (ctx, state) {
         if (state.error != null && state.error!.isNotEmpty) {
           ScaffoldMessenger.of(ctx).showSnackBar(
@@ -26,6 +40,21 @@ class HomeScreen extends StatelessWidget {
             ),
           );
           ctx.read<HomeCubit>().clearError();
+          return;
+        }
+
+        final completedCheckIn =
+            state.actionInProgress.isEmpty &&
+            state.isCheckedIn &&
+            state.isInsideGeofence;
+
+        if (completedCheckIn) {
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            const SnackBar(
+              content: Text('Checked in successfully!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
         }
       },
       builder: (ctx, state) {
@@ -476,14 +505,6 @@ class _StatusCardState extends State<_StatusCard>
       _showCheckOutSheet(context, cubit, s);
     } else {
       await cubit.checkIn();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Checked in successfully! 🎉'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      }
     }
   }
 
@@ -779,50 +800,57 @@ class _TodaySummaryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final record = state.todayRecord;
-    return GridView.count(
-      crossAxisCount: 2,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.6,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      children: [
-        StatCard(
-          icon: Icons.schedule_rounded,
-          iconColor: AppColors.primary,
-          label: 'Worked Today',
-          value: record != null
-              ? AppUtils.formatHours(record.workedHours)
-              : '--',
-          sub: 'of 8.5h shift',
-        ),
-        StatCard(
-          icon: Icons.task_alt_rounded,
-          iconColor: AppColors.success,
-          label: 'Tasks',
-          value: '${state.tasks.length}',
-          sub:
-              '${state.tasks.where((t) => t.status == 'pending').length} pending',
-        ),
-        StatCard(
-          icon: Icons.free_breakfast_outlined,
-          iconColor: AppColors.warning,
-          label: 'Break Time',
-          value: record != null
-              ? AppUtils.formatDuration(record.breakDuration)
-              : '--',
-          sub: '${record?.breaks.length ?? 0} break(s)',
-        ),
-        StatCard(
-          icon: Icons.event_available_rounded,
-          iconColor: AppColors.tertiary,
-          label: 'Attendance',
-          value: state.monthlyStats != null
-              ? '${state.monthlyStats!.attendancePct.toStringAsFixed(0)}%'
-              : '--',
-          sub: 'This month',
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = (constraints.maxWidth - 12) / 2;
+        final cardHeight = cardWidth < 150 ? 116.0 : 108.0;
+
+        return GridView.count(
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: cardWidth / cardHeight,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            StatCard(
+              icon: Icons.schedule_rounded,
+              iconColor: AppColors.primary,
+              label: 'Worked Today',
+              value: record != null
+                  ? AppUtils.formatHours(record.workedHours)
+                  : '--',
+              sub: 'of 8.5h shift',
+            ),
+            StatCard(
+              icon: Icons.task_alt_rounded,
+              iconColor: AppColors.success,
+              label: 'Tasks',
+              value: '${state.tasks.length}',
+              sub:
+                  '${state.tasks.where((t) => t.status == 'pending').length} pending',
+            ),
+            StatCard(
+              icon: Icons.free_breakfast_outlined,
+              iconColor: AppColors.warning,
+              label: 'Break Time',
+              value: record != null
+                  ? AppUtils.formatDuration(record.breakDuration)
+                  : '--',
+              sub: '${record?.breaks.length ?? 0} break(s)',
+            ),
+            StatCard(
+              icon: Icons.event_available_rounded,
+              iconColor: AppColors.tertiary,
+              label: 'Attendance',
+              value: state.monthlyStats != null
+                  ? '${state.monthlyStats!.attendancePct.toStringAsFixed(0)}%'
+                  : '--',
+              sub: 'This month',
+            ),
+          ],
+        );
+      },
     );
   }
 }

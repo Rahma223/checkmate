@@ -195,7 +195,7 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
@@ -209,7 +209,6 @@ class StatCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -231,11 +230,11 @@ class StatCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const Spacer(),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 19,
               fontWeight: FontWeight.w800,
               color: AppColors.onSurface,
             ),

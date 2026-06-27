@@ -108,7 +108,19 @@ class AttendanceEntity extends Equatable {
   );
 
   @override
-  List<Object?> get props => [id, userId, date, status, checkIn, checkOut];
+  List<Object?> get props => [
+    id,
+    userId,
+    date,
+    status,
+    checkIn,
+    checkOut,
+    location,
+    lat,
+    lng,
+    notes,
+    breaks,
+  ];
 }
 
 class MonthlyStatsEntity extends Equatable {
