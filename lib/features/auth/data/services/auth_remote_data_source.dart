@@ -28,7 +28,8 @@ class AuthRemoteDataSource {
     final userResponse = await dio.get('/users/me');
 
     final data = userResponse.data['data'];
-
+    print('work_coordinates = ${data['work_coordinates']}');
+    print('geofence_radius = ${data['geofence_radius']}');
     final user = UserEntity(
       id: data['id'],
       name: '${data['first_name'] ?? ''} ${data['last_name'] ?? ''}',
@@ -41,6 +42,13 @@ class AuthRemoteDataSource {
       shiftStart: data['shift_start'] ?? '09:00',
       shiftEnd: data['shift_end'] ?? '17:30',
       workLocation: data['work_location'] ?? '',
+
+      workCoordinates: data['work_coordinates'] != null
+          ? Map<String, dynamic>.from(data['work_coordinates'])
+          : null,
+
+      geofenceRadius: data['geofence_radius'] ?? 100,
+
       totalLeaves: data['total_leaves'] ?? 21,
       usedLeaves: data['used_leaves'] ?? 0,
     );
@@ -67,6 +75,11 @@ class AuthRemoteDataSource {
       shiftStart: data['shift_start'] ?? '09:00',
       shiftEnd: data['shift_end'] ?? '17:30',
       workLocation: data['work_location'] ?? '',
+      workCoordinates: data['work_coordinates'] != null
+          ? Map<String, dynamic>.from(data['work_coordinates'])
+          : null,
+
+      geofenceRadius: data['geofence_radius'] ?? 100,
       totalLeaves: data['total_leaves'] ?? 21,
       usedLeaves: data['used_leaves'] ?? 0,
     );
@@ -110,6 +123,11 @@ class AuthRemoteDataSource {
       shiftStart: data['shift_start'] ?? '09:00',
       shiftEnd: data['shift_end'] ?? '17:30',
       workLocation: data['work_location'] ?? '',
+      workCoordinates: data['work_coordinates'] != null
+          ? Map<String, dynamic>.from(data['work_coordinates'])
+          : null,
+
+      geofenceRadius: data['geofence_radius'] ?? 100,
       totalLeaves: data['total_leaves'] ?? 21,
       usedLeaves: data['used_leaves'] ?? 0,
     );

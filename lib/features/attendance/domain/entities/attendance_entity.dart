@@ -1,7 +1,6 @@
 import 'package:equatable/equatable.dart';
 
 class BreakEntity extends Equatable {
-
   final String id;
 
   final DateTime startTime;

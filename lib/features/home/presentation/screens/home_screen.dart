@@ -6,6 +6,7 @@ import 'package:checkmate/core/utils/app_utils.dart';
 import 'package:checkmate/domain/entities/entities.dart';
 import 'package:checkmate/presentation/cubits/cubits.dart';
 import 'package:checkmate/presentation/widgets/common/shared_widgets.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'map_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -47,6 +48,7 @@ class HomeScreen extends StatelessWidget {
                       ],
                       _GreetingSection(user: user),
                       const SizedBox(height: 20),
+
                       _MapPreviewCard(
                         onTap: () => Navigator.push(
                           context,
@@ -201,15 +203,13 @@ class _MapPreviewCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: Container(
-                color: AppColors.surfaceContainerHigh,
-                child: Center(
-                  child: Icon(
-                    Icons.map_rounded,
-                    size: 56,
-                    color: AppColors.outlineVariant,
-                  ),
+              child: GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: LatLng(30.0444, 31.2357),
+                  zoom: 14,
                 ),
+                zoomControlsEnabled: false,
+                myLocationButtonEnabled: false,
               ),
             ),
             Positioned(
