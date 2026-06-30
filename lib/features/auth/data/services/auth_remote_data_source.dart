@@ -11,47 +11,14 @@ class AuthRemoteDataSource {
     required String email,
     required String password,
   }) async {
-    // LOGIN
     final loginResponse = await dio.post(
       '/auth/login',
       data: {'email': email, 'password': password},
-
-      // ignore: avoid_print
     );
-    print("==========${loginResponse.data}");
     final token = loginResponse.data['data']['access_token'];
 
-    // ADD TOKEN
     dio.options.headers['Authorization'] = 'Bearer $token';
-
-    // GET CURRENT USER
-    final userResponse = await dio.get('/users/me');
-
-    final data = userResponse.data['data'];
-    print('work_coordinates = ${data['work_coordinates']}');
-    print('geofence_radius = ${data['geofence_radius']}');
-    final user = UserEntity(
-      id: data['id'],
-      name: '${data['first_name'] ?? ''} ${data['last_name'] ?? ''}',
-      email: data['email'] ?? '',
-      department: data['department'] ?? '',
-      position: data['position'] ?? '',
-      employeeId: data['employee_id'] ?? '',
-      avatarUrl: '',
-      phone: data['phone'] ?? '',
-      shiftStart: data['shift_start'] ?? '09:00',
-      shiftEnd: data['shift_end'] ?? '17:30',
-      workLocation: data['work_location'] ?? '',
-
-      workCoordinates: data['work_coordinates'] != null
-          ? Map<String, dynamic>.from(data['work_coordinates'])
-          : null,
-
-      geofenceRadius: data['geofence_radius'] ?? 100,
-
-      totalLeaves: data['total_leaves'] ?? 21,
-      usedLeaves: data['used_leaves'] ?? 0,
-    );
+    final user = await getProfile(token);
 
     return AuthResponse(user: user, token: token);
   }
@@ -63,26 +30,7 @@ class AuthRemoteDataSource {
 
     final data = response.data['data'];
 
-    return UserEntity(
-      id: data['id'],
-      name: '${data['first_name'] ?? ''} ${data['last_name'] ?? ''}',
-      email: data['email'] ?? '',
-      department: data['department'] ?? '',
-      position: data['position'] ?? '',
-      employeeId: data['employee_id'] ?? '',
-      avatarUrl: '',
-      phone: data['phone'] ?? '',
-      shiftStart: data['shift_start'] ?? '09:00',
-      shiftEnd: data['shift_end'] ?? '17:30',
-      workLocation: data['work_location'] ?? '',
-      workCoordinates: data['work_coordinates'] != null
-          ? Map<String, dynamic>.from(data['work_coordinates'])
-          : null,
-
-      geofenceRadius: data['geofence_radius'] ?? 100,
-      totalLeaves: data['total_leaves'] ?? 21,
-      usedLeaves: data['used_leaves'] ?? 0,
-    );
+    return _userFromJson(data);
   }
 
   Future<Map<String, dynamic>> checkOut({required int attendanceId}) async {
@@ -98,7 +46,7 @@ class AuthRemoteDataSource {
   }
 
   Future<UserEntity> updateProfile(UserEntity user) async {
-    final response = await dio.patch(
+    await dio.patch(
       '/users/me',
       data: {
         'first_name': user.name.split(' ').first,
@@ -109,8 +57,13 @@ class AuthRemoteDataSource {
       },
     );
 
+    final response = await dio.get('/users/me');
     final data = response.data['data'];
 
+    return _userFromJson(data);
+  }
+
+  UserEntity _userFromJson(Map<String, dynamic> data) {
     return UserEntity(
       id: data['id'],
       name: '${data['first_name'] ?? ''} ${data['last_name'] ?? ''}',

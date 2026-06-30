@@ -329,6 +329,7 @@ class _StatusCardState extends State<_StatusCard>
     final isOut = s.isCheckedOut;
     final isBrk = s.isOnBreak;
     final busy = s.actionInProgress.isNotEmpty;
+    final canCheckIn = isIn || isBrk || s.isInsideGeofence;
     final checkOut = s.todayRecord?.checkOut;
     final statusColor = AppUtils.statusColor(s.status);
 
@@ -437,7 +438,9 @@ class _StatusCardState extends State<_StatusCard>
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: busy ? null : () => _handleAction(context, s),
+                onPressed: busy || !canCheckIn
+                    ? null
+                    : () => _handleAction(context, s),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isBrk
                       ? AppColors.warning
@@ -630,7 +633,7 @@ class _GeofencePill extends StatelessWidget {
         ),
         const SizedBox(width: 5),
         Text(
-          inside ? 'In Geofence' : 'Out of Range',
+          inside ? 'Inside work area' : 'Outside work area',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,

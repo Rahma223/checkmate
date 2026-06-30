@@ -1,6 +1,16 @@
 import 'package:checkmate/features/auth/domain/entities/user_entity.dart';
 import 'package:geolocator/geolocator.dart';
 
+class GeofenceResult {
+  final double distanceInMeters;
+  final bool isInside;
+
+  const GeofenceResult({
+    required this.distanceInMeters,
+    required this.isInside,
+  });
+}
+
 /// Provides location and geofence checks for attendance workflows.
 ///
 /// The service is UI-agnostic and can be reused by any feature that needs to
@@ -45,6 +55,14 @@ class GeofenceService {
   /// exposes helper getters that return the values in the expected order.
   /// Throws an [Exception] when the user's work coordinates are missing.
   Future<double> calculateDistance(UserEntity user) async {
+    final currentPosition = await getCurrentLocation();
+
+    return calculateDistanceFromPosition(user, currentPosition);
+  }
+
+  /// Calculates the distance in meters from a known position to the user's
+  /// configured work coordinates.
+  double calculateDistanceFromPosition(UserEntity user, Position position) {
     final workLatitude = user.workLatitude;
     final workLongitude = user.workLongitude;
 
@@ -52,11 +70,9 @@ class GeofenceService {
       throw Exception('Work coordinates are missing.');
     }
 
-    final currentPosition = await getCurrentLocation();
-
     return Geolocator.distanceBetween(
-      currentPosition.latitude,
-      currentPosition.longitude,
+      position.latitude,
+      position.longitude,
       workLatitude,
       workLongitude,
     );
@@ -67,8 +83,26 @@ class GeofenceService {
   ///
   /// The allowed area is defined by [UserEntity.geofenceRadius] in meters.
   Future<bool> isInsideGeofence(UserEntity user) async {
-    final distance = await calculateDistance(user);
+    final result = await checkGeofence(user);
 
-    return distance <= user.geofenceRadius;
+    return result.isInside;
+  }
+
+  /// Returns both distance and inside/outside state using a single distance
+  /// calculation.
+  Future<GeofenceResult> checkGeofence(UserEntity user) async {
+    final currentPosition = await getCurrentLocation();
+
+    return checkGeofenceFromPosition(user, currentPosition);
+  }
+
+  /// Returns both distance and inside/outside state for a known position.
+  GeofenceResult checkGeofenceFromPosition(UserEntity user, Position position) {
+    final distance = calculateDistanceFromPosition(user, position);
+
+    return GeofenceResult(
+      distanceInMeters: distance,
+      isInside: distance <= user.geofenceRadius,
+    );
   }
 }

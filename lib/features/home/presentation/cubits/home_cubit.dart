@@ -183,11 +183,11 @@ class HomeCubit extends Cubit<HomeState> {
     final userId = authState.user.id;
 
     try {
-      final isInsideGeofence = await _geofenceService.isInsideGeofence(
+      final geofenceResult = await _geofenceService.checkGeofence(
         authState.user,
       );
 
-      if (!isInsideGeofence) {
+      if (!geofenceResult.isInside) {
         emit(
           state.copyWith(
             isInsideGeofence: false,

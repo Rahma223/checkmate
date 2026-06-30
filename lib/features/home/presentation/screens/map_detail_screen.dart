@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:checkmate/core/services/geofence_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
@@ -14,9 +17,13 @@ class MapDetailScreen extends StatefulWidget {
 
 class _MapDetailScreenState extends State<MapDetailScreen> {
   GoogleMapController? _mapController;
+  StreamSubscription<Position>? _positionSubscription;
   final Set<Marker> _markers = {};
   final Set<Circle> _circles = {};
   LatLng _userLocation = const LatLng(40.7484, -73.9967);
+  double? _distanceInMeters;
+  bool? _isInsideGeofence;
+  String? _locationError;
 
   @override
   void initState() {
@@ -25,9 +32,20 @@ class _MapDetailScreenState extends State<MapDetailScreen> {
   }
 
   Future<void> _requestLocationPermission() async {
-    final permission = await Geolocator.requestPermission();
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      setState(() => _locationError = 'Location services are disabled.');
+      return;
+    }
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
+      setState(() => _locationError = 'Location permission was denied.');
       return;
     }
 
@@ -37,13 +55,66 @@ class _MapDetailScreenState extends State<MapDetailScreen> {
           accuracy: LocationAccuracy.high,
         ),
       );
-      setState(() {
-        _userLocation = LatLng(position.latitude, position.longitude);
-      });
+      _handlePosition(position);
 
       _focusMap();
       _updateMarkers();
-    } catch (_) {}
+      _startLocationUpdates();
+    } catch (e) {
+      setState(() {
+        _locationError = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  void _startLocationUpdates() {
+    _positionSubscription?.cancel();
+    _positionSubscription = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+      ),
+    ).listen(_handlePosition);
+  }
+
+  void _handlePosition(Position position) {
+    if (!mounted) {
+      return;
+    }
+
+    final user = context.read<AuthCubit>().currentUser;
+    GeofenceResult? geofenceResult;
+
+    if (user != null) {
+      try {
+        geofenceResult = context
+            .read<GeofenceService>()
+            .checkGeofenceFromPosition(user, position);
+      } catch (e) {
+        _locationError = e.toString().replaceFirst('Exception: ', '');
+      }
+    }
+
+    setState(() {
+      _userLocation = LatLng(position.latitude, position.longitude);
+      _distanceInMeters = geofenceResult?.distanceInMeters;
+      _isInsideGeofence = geofenceResult?.isInside;
+      if (geofenceResult != null) {
+        _locationError = null;
+      }
+    });
+  }
+
+  String _formatDistance(double? distanceInMeters) {
+    if (distanceInMeters == null) {
+      return '--';
+    }
+
+    if (distanceInMeters < 1000) {
+      return '${distanceInMeters.round()} m';
+    }
+
+    return '${(distanceInMeters / 1000).toStringAsFixed(1)} km';
   }
 
   LatLng? _companyLocation() {
@@ -157,6 +228,11 @@ class _MapDetailScreenState extends State<MapDetailScreen> {
               label: 'Your Location',
               value: _formatCoordinates(_userLocation),
             ),
+            const SizedBox(height: 12),
+            _DetailRow(
+              label: 'Distance',
+              value: _formatDistance(_distanceInMeters),
+            ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -176,6 +252,9 @@ class _MapDetailScreenState extends State<MapDetailScreen> {
     return BlocListener<HomeCubit, HomeState>(
       listener: (ctx, state) {
         _updateMarkers();
+        if (_positionSubscription == null) {
+          _requestLocationPermission();
+        }
         _focusMap();
       },
       child: Scaffold(
@@ -252,26 +331,32 @@ class _MapDetailScreenState extends State<MapDetailScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: companyLocation != null
-                                  ? AppColors.primary.withOpacity(0.1)
-                                  : AppColors.errorContainer,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
+                          _WorkAreaStatus(
+                            companyLocationAvailable: companyLocation != null,
+                            inside: _isInsideGeofence,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _MetricChip(
+                            label: 'Distance',
+                            value: _formatDistance(_distanceInMeters),
+                            icon: Icons.social_distance_rounded,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
                             child: Text(
-                              companyLocation != null ? 'Geofence' : 'Missing',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: companyLocation != null
-                                    ? AppColors.primary
-                                    : AppColors.error,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              _locationError ?? 'Updates with your location',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: _locationError == null
+                                        ? AppColors.onSurfaceVariant
+                                        : AppColors.error,
+                                  ),
                             ),
                           ),
                         ],
@@ -308,9 +393,106 @@ class _MapDetailScreenState extends State<MapDetailScreen> {
 
   @override
   void dispose() {
+    _positionSubscription?.cancel();
     _mapController?.dispose();
     super.dispose();
   }
+}
+
+class _WorkAreaStatus extends StatelessWidget {
+  final bool companyLocationAvailable;
+  final bool? inside;
+
+  const _WorkAreaStatus({
+    required this.companyLocationAvailable,
+    required this.inside,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isInside = inside == true;
+    final isKnown = companyLocationAvailable && inside != null;
+    final color = isKnown
+        ? (isInside ? AppColors.success : AppColors.error)
+        : AppColors.outline;
+    final background = isKnown
+        ? (isInside ? AppColors.successContainer : AppColors.errorContainer)
+        : AppColors.surfaceContainerLow;
+    final label = !companyLocationAvailable
+        ? 'Missing work area'
+        : inside == null
+        ? 'Locating...'
+        : isInside
+        ? 'Inside work area'
+        : 'Outside work area';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _MetricChip({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    decoration: BoxDecoration(
+      color: AppColors.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: Theme.of(context).textTheme.labelSmall),
+            Text(
+              value,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
 }
 
 class _DetailRow extends StatelessWidget {
