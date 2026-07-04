@@ -14,6 +14,7 @@ class HomeState extends Equatable {
   final bool isLoading;
   final bool isSyncing;
   final bool isInsideGeofence;
+  final bool isCheckingGeofence;
   final String? error;
   final String actionInProgress;
   final int unreadNotifications;
@@ -24,7 +25,8 @@ class HomeState extends Equatable {
     this.tasks = const [],
     this.isLoading = true,
     this.isSyncing = true,
-    this.isInsideGeofence = true,
+    this.isInsideGeofence = false,
+    this.isCheckingGeofence = false,
     this.error,
     this.actionInProgress = '',
     this.unreadNotifications = 0,
@@ -42,6 +44,7 @@ class HomeState extends Equatable {
     bool? isLoading,
     bool? isSyncing,
     bool? isInsideGeofence,
+    bool? isCheckingGeofence,
     String? error,
     String? actionInProgress,
     int? unreadNotifications,
@@ -53,6 +56,7 @@ class HomeState extends Equatable {
     isLoading: isLoading ?? this.isLoading,
     isSyncing: isSyncing ?? this.isSyncing,
     isInsideGeofence: isInsideGeofence ?? this.isInsideGeofence,
+    isCheckingGeofence: isCheckingGeofence ?? this.isCheckingGeofence,
     error: error ?? this.error,
     actionInProgress: actionInProgress ?? this.actionInProgress,
     unreadNotifications: unreadNotifications ?? this.unreadNotifications,
@@ -66,6 +70,7 @@ class HomeState extends Equatable {
     isLoading,
     isSyncing,
     isInsideGeofence,
+    isCheckingGeofence,
     error,
     actionInProgress,
     unreadNotifications,
@@ -159,6 +164,8 @@ class HomeCubit extends Cubit<HomeState> {
       'HomeCubit.load: todayRecord=${todayRecord?.id}, breaks=${todayRecord?.breaks.length ?? 0}',
     );
 
+    await refreshGeofenceStatus();
+
     // Fetch monthly stats for authenticated user
     final statsResult = await _attendanceRepo.getMonthlyStats(
       DateTime.now(),
@@ -168,6 +175,42 @@ class HomeCubit extends Cubit<HomeState> {
 
     await Future.delayed(const Duration(seconds: 3));
     emit(state.copyWith(isSyncing: false));
+  }
+
+  Future<bool?> refreshGeofenceStatus({bool showError = false}) async {
+    final authState = _authCubit.state;
+
+    if (authState is! AuthAuthenticated) {
+      emit(state.copyWith(isInsideGeofence: false, isCheckingGeofence: false));
+      return null;
+    }
+
+    emit(state.copyWith(isCheckingGeofence: true));
+
+    try {
+      final geofenceResult = await _geofenceService.checkGeofence(
+        authState.user,
+      );
+
+      emit(
+        state.copyWith(
+          isInsideGeofence: geofenceResult.isInside,
+          isCheckingGeofence: false,
+        ),
+      );
+
+      return geofenceResult.isInside;
+    } catch (e) {
+      final message = e.toString().replaceFirst('Exception: ', '');
+      emit(
+        state.copyWith(
+          isInsideGeofence: false,
+          isCheckingGeofence: false,
+          error: showError ? message : state.error,
+        ),
+      );
+      return null;
+    }
   }
 
   Future<void> checkIn() async {
@@ -182,26 +225,20 @@ class HomeCubit extends Cubit<HomeState> {
 
     final userId = authState.user.id;
 
-    try {
-      final geofenceResult = await _geofenceService.checkGeofence(
-        authState.user,
+    final isInsideGeofence = await refreshGeofenceStatus(showError: true);
+
+    if (isInsideGeofence == null) {
+      emit(state.copyWith(actionInProgress: ''));
+      return;
+    }
+
+    if (!isInsideGeofence) {
+      emit(
+        state.copyWith(
+          error: 'You are outside the allowed work area.',
+          actionInProgress: '',
+        ),
       );
-
-      if (!geofenceResult.isInside) {
-        emit(
-          state.copyWith(
-            isInsideGeofence: false,
-            error: 'You are outside the allowed work area.',
-            actionInProgress: '',
-          ),
-        );
-        return;
-      }
-
-      emit(state.copyWith(isInsideGeofence: true));
-    } catch (e) {
-      final message = e.toString().replaceFirst('Exception: ', '');
-      emit(state.copyWith(error: message, actionInProgress: ''));
       return;
     }
 

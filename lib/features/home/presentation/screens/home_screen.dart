@@ -329,7 +329,8 @@ class _StatusCardState extends State<_StatusCard>
     final isOut = s.isCheckedOut;
     final isBrk = s.isOnBreak;
     final busy = s.actionInProgress.isNotEmpty;
-    final canCheckIn = isIn || isBrk || s.isInsideGeofence;
+    final canCheckIn =
+        isIn || isBrk || (!s.isCheckingGeofence && s.isInsideGeofence);
     final checkOut = s.todayRecord?.checkOut;
     final statusColor = AppUtils.statusColor(s.status);
 
@@ -388,7 +389,10 @@ class _StatusCardState extends State<_StatusCard>
                 ],
               ),
               const Spacer(),
-              _GeofencePill(inside: s.isInsideGeofence),
+              _GeofencePill(
+                inside: s.isInsideGeofence,
+                isChecking: s.isCheckingGeofence,
+              ),
             ],
           ),
 
@@ -606,43 +610,56 @@ class _SummaryChip extends StatelessWidget {
 
 class _GeofencePill extends StatelessWidget {
   final bool inside;
-  const _GeofencePill({required this.inside});
+  final bool isChecking;
+
+  const _GeofencePill({required this.inside, required this.isChecking});
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-    decoration: BoxDecoration(
-      color: inside ? AppColors.successContainer : AppColors.errorContainer,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(
-        color: inside
-            ? AppColors.success.withOpacity(0.3)
-            : AppColors.error.withOpacity(0.3),
+  Widget build(BuildContext context) {
+    final color = isChecking
+        ? AppColors.outline
+        : inside
+        ? AppColors.success
+        : AppColors.error;
+    final background = isChecking
+        ? AppColors.surfaceContainerLow
+        : inside
+        ? AppColors.successContainer
+        : AppColors.errorContainer;
+    final label = isChecking
+        ? 'Checking location...'
+        : inside
+        ? 'Inside work area'
+        : 'Outside work area';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            color: inside ? AppColors.success : AppColors.error,
-            shape: BoxShape.circle,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-        ),
-        const SizedBox(width: 5),
-        Text(
-          inside ? 'Inside work area' : 'Outside work area',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: inside ? AppColors.success : AppColors.error,
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _TimeCol extends StatelessWidget {
