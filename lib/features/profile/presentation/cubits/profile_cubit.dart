@@ -113,15 +113,17 @@ class ProfileCubit extends Cubit<ProfileState> {
       toDate: toDate,
       reason: reason,
     );
-    result.fold(
-      (f) => emit(state.copyWith(isSubmitting: false, error: f.message)),
-      (l) => emit(
-        state.copyWith(
-          isSubmitting: false,
-          leaves: [l, ...state.leaves],
-          successMessage: 'Leave request submitted',
-        ),
-      ),
+    await result.fold(
+      (f) async => emit(state.copyWith(isSubmitting: false, error: f.message)),
+      (_) async {
+        await loadUserLeaves();
+        emit(
+          state.copyWith(
+            isSubmitting: false,
+            successMessage: 'Leave request submitted',
+          ),
+        );
+      },
     );
   }
 

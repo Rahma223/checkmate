@@ -35,10 +35,11 @@ class LeaveRemoteDataSource {
   }
 
   Future<Map<String, dynamic>> _postLeave(LeaveEntity leave) async {
-    final response = await dio.post(
-      '/items/leave_requests',
-      data: LeaveModel.fromEntity(leave).toJson(),
-    );
+    final data = LeaveModel.fromEntity(leave).toJson()
+      ..['status'] = 'pending'
+      ..remove('approver_name')
+      ..remove('approver_note');
+    final response = await dio.post('/items/leave_requests', data: data);
 
     return Map<String, dynamic>.from(response.data['data']);
   }

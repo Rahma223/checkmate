@@ -8,38 +8,90 @@ import 'package:checkmate/presentation/widgets/common/shared_widgets.dart';
 
 class ProfileScreen extends StatelessWidget {
   final VoidCallback onLogout;
-  const ProfileScreen({super.key, required this.onLogout});
+  final bool isActive;
+  const ProfileScreen({
+    super.key,
+    required this.onLogout,
+    this.isActive = true,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: AppColors.surface,
-        body: BlocBuilder<AuthCubit, AuthState>(
-          builder: (ctx, authState) {
-            final user = authState is AuthAuthenticated ? authState.user : null;
-            return NestedScrollView(
-              headerSliverBuilder: (_, __) => [
-                _ProfileSliverHeader(user: user, onLogout: onLogout),
-              ],
-              body: Column(
-                children: [
-                  _TabBar(),
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        _OverviewTab(user: user),
-                        _LeaveTab(),
-                        _SettingsTab(onLogout: onLogout),
-                      ],
-                    ),
+    return _ProfileTabs(onLogout: onLogout, isActive: isActive);
+  }
+}
+
+class _ProfileTabs extends StatefulWidget {
+  final VoidCallback onLogout;
+  final bool isActive;
+  const _ProfileTabs({required this.onLogout, required this.isActive});
+
+  @override
+  State<_ProfileTabs> createState() => _ProfileTabsState();
+}
+
+class _ProfileTabsState extends State<_ProfileTabs>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this)
+      ..addListener(_handleTabChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ProfileTabs oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isActive && widget.isActive) {
+      context.read<ProfileCubit>().loadUserLeaves();
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController
+      ..removeListener(_handleTabChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    if (_tabController.index == 1 && widget.isActive) {
+      context.read<ProfileCubit>().loadUserLeaves();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.surface,
+      body: BlocBuilder<AuthCubit, AuthState>(
+        builder: (ctx, authState) {
+          final user = authState is AuthAuthenticated ? authState.user : null;
+          return NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              _ProfileSliverHeader(user: user, onLogout: widget.onLogout),
+            ],
+            body: Column(
+              children: [
+                _TabBar(controller: _tabController),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _OverviewTab(user: user),
+                      _LeaveTab(),
+                      _SettingsTab(onLogout: widget.onLogout),
+                    ],
                   ),
-                ],
-              ),
-            );
-          },
-        ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -328,11 +380,15 @@ class _LeaveBalanceCard extends StatelessWidget {
 }
 
 class _TabBar extends StatelessWidget {
+  final TabController controller;
+  const _TabBar({required this.controller});
+
   @override
   Widget build(BuildContext context) => Container(
     color: AppColors.surfaceContainerLowest,
-    child: const TabBar(
-      tabs: [
+    child: TabBar(
+      controller: controller,
+      tabs: const [
         Tab(text: 'Overview'),
         Tab(text: 'Leave'),
         Tab(text: 'Settings'),
@@ -501,27 +557,42 @@ class _MiniStatRow extends StatelessWidget {
 }
 
 class _LeaveTab extends StatelessWidget {
+  Future<void> _refresh(BuildContext context) {
+    return context.read<ProfileCubit>().loadUserLeaves();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ProfileCubit, ProfileState>(
       builder: (ctx, state) {
-        if (state.isLoading)
+        if (state.isLoading) {
           return const Center(child: CircularProgressIndicator());
-        if (state.leaves.isEmpty)
-          return const EmptyState(
-            icon: Icons.beach_access_outlined,
-            title: 'No leave requests',
-            subtitle: 'Your leave history will appear here',
+        }
+        if (state.leaves.isEmpty) {
+          return RefreshIndicator(
+            onRefresh: () => _refresh(ctx),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              children: const [
+                SizedBox(height: 160),
+                EmptyState(
+                  icon: Icons.beach_access_outlined,
+                  title: 'No leave requests',
+                  subtitle: 'Your leave history will appear here',
+                ),
+              ],
+            ),
           );
-        return ListView.separated(
-          padding: const EdgeInsets.all(20),
-          itemCount: state.leaves.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 0),
-          itemBuilder: (_, i) => LeaveCard(
-            leave: state.leaves[i],
-            onCancel: state.leaves[i].status == 'pending'
-                ? () => ctx.read<ProfileCubit>().cancelLeave(state.leaves[i].id)
-                : null,
+        }
+        return RefreshIndicator(
+          onRefresh: () => _refresh(ctx),
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(20),
+            itemCount: state.leaves.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 0),
+            itemBuilder: (_, i) => LeaveCard(leave: state.leaves[i]),
           ),
         );
       },

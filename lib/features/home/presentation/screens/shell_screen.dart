@@ -41,7 +41,10 @@ class _ShellScreenState extends State<ShellScreen> {
           ),
           const ScheduleScreen(),
           const HistoryScreen(),
-          ProfileScreen(onLogout: widget.onLogout),
+          ProfileScreen(
+            onLogout: widget.onLogout,
+            isActive: _currentIndex == 3,
+          ),
         ],
       ),
       bottomNavigationBar: _BottomNav(
