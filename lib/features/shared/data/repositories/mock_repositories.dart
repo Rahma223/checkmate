@@ -395,13 +395,23 @@ class MockLeaveRepository implements LeaveRepository {
   ];
 
   @override
-  Future<Either<Failure, List<LeaveEntity>>> getLeaves() async {
+  Future<Either<Failure, void>> createLeave(LeaveEntity leave) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    _leaves.insert(0, leave);
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Failure, List<LeaveEntity>>> getUserLeaves(
+    String userId,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 500));
-    return Right(List.from(_leaves));
+    return Right(_leaves.where((leave) => leave.userId == userId).toList());
   }
 
   @override
   Future<Either<Failure, LeaveEntity>> submitLeave({
+    required String userId,
     required String type,
     required DateTime fromDate,
     required DateTime toDate,
@@ -410,7 +420,7 @@ class MockLeaveRepository implements LeaveRepository {
     await Future.delayed(const Duration(seconds: 1));
     final leave = LeaveEntity(
       id: 'lv_${DateTime.now().millisecondsSinceEpoch}',
-      userId: 'usr_001',
+      userId: userId,
       type: type,
       fromDate: fromDate,
       toDate: toDate,

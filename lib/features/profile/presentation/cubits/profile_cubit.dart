@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:checkmate/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:checkmate/domain/entities/entities.dart';
 import 'package:checkmate/domain/repositories/repositories.dart';
 
@@ -44,14 +47,45 @@ class ProfileState extends Equatable {
 
 class ProfileCubit extends Cubit<ProfileState> {
   final LeaveRepository _leaveRepo;
+  final AuthCubit _authCubit;
+  late final StreamSubscription _authSubscription;
 
-  ProfileCubit(this._leaveRepo) : super(const ProfileState()) {
-    loadLeaves();
+  ProfileCubit(this._leaveRepo, this._authCubit) : super(const ProfileState()) {
+    _authSubscription = _authCubit.stream.listen((authState) {
+      if (authState is AuthAuthenticated) {
+        loadUserLeaves();
+      } else if (authState is AuthUnauthenticated) {
+        emit(state.copyWith(leaves: [], isLoading: false));
+      }
+    });
+
+    if (_authCubit.state is AuthAuthenticated) {
+      loadUserLeaves();
+    } else {
+      emit(state.copyWith(isLoading: false));
+    }
+  }
+
+  @override
+  Future<void> close() {
+    _authSubscription.cancel();
+    return super.close();
   }
 
   Future<void> loadLeaves() async {
+    await loadUserLeaves();
+  }
+
+  Future<void> loadUserLeaves() async {
+    final authState = _authCubit.state;
+
+    if (authState is! AuthAuthenticated) {
+      emit(state.copyWith(isLoading: false, error: 'User not logged in'));
+      return;
+    }
+
     emit(state.copyWith(isLoading: true));
-    final result = await _leaveRepo.getLeaves();
+    final result = await _leaveRepo.getUserLeaves(authState.user.id);
     result.fold(
       (f) => emit(state.copyWith(isLoading: false, error: f.message)),
       (l) => emit(state.copyWith(leaves: l, isLoading: false)),
@@ -64,8 +98,16 @@ class ProfileCubit extends Cubit<ProfileState> {
     required DateTime toDate,
     required String reason,
   }) async {
+    final authState = _authCubit.state;
+
+    if (authState is! AuthAuthenticated) {
+      emit(state.copyWith(error: 'User not logged in'));
+      return;
+    }
+
     emit(state.copyWith(isSubmitting: true));
     final result = await _leaveRepo.submitLeave(
+      userId: authState.user.id,
       type: type,
       fromDate: fromDate,
       toDate: toDate,

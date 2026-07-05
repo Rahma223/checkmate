@@ -588,6 +588,10 @@ class _LeaveRequestSheetState extends State<_LeaveRequestSheet> {
               backgroundColor: AppColors.success,
             ),
           );
+          context.read<ScheduleCubit>().loadMonth(
+            context.read<ScheduleCubit>().state.selectedMonth,
+          );
+          ctx.read<ProfileCubit>().clearMessages();
           Navigator.pop(context);
         }
         if (state.error != null) {
@@ -597,6 +601,7 @@ class _LeaveRequestSheetState extends State<_LeaveRequestSheet> {
               backgroundColor: AppColors.error,
             ),
           );
+          ctx.read<ProfileCubit>().clearMessages();
         }
       },
       builder: (ctx, state) {

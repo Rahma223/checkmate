@@ -4,11 +4,13 @@ import 'package:checkmate/core/theme/app_theme.dart';
 
 import 'package:checkmate/features/attendance/data/repositories/attendance_repository_impl.dart';
 import 'package:checkmate/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:checkmate/features/profile/data/repositories/leave_repository_impl.dart';
 import 'package:checkmate/features/shared/data/repositories/mock_repositories.dart';
 
 import 'package:checkmate/features/attendance/data/services/attendance_remote_data_source.dart';
 import 'package:checkmate/features/auth/data/services/auth_local_data_source.dart';
 import 'package:checkmate/features/auth/data/services/auth_remote_data_source.dart';
+import 'package:checkmate/features/profile/data/services/leave_remote_data_source.dart';
 
 import 'package:checkmate/domain/repositories/repositories.dart';
 
@@ -54,17 +56,18 @@ class CheckmateApp extends StatelessWidget {
     final authRemote = AuthRemoteDataSource(apiClient);
 
     final attendanceRemote = AttendanceRemoteDataSource(apiClient);
+    final leaveRemote = LeaveRemoteDataSource(apiClient);
     final geofenceService = GeofenceService();
 
     // REPOSITORIES
     final authRepo = AuthRepositoryImpl(authRemote, authLocal);
 
     final attendanceRepo = AttendanceRepositoryImpl(attendanceRemote);
+    final leaveRepo = LeaveRepositoryImpl(leaveRemote);
 
     // MOCK REPOSITORIES
     final taskRepo = MockTaskRepository();
     final scheduleRepo = MockScheduleRepository();
-    final leaveRepo = MockLeaveRepository();
     final teamRepo = MockTeamRepository();
     final notifRepo = MockNotificationRepository();
 
@@ -99,7 +102,11 @@ class CheckmateApp extends StatelessWidget {
 
           // SCHEDULE
           BlocProvider<ScheduleCubit>(
-            create: (_) => ScheduleCubit(scheduleRepo, leaveRepo),
+            create: (context) => ScheduleCubit(
+              scheduleRepo,
+              leaveRepo,
+              context.read<AuthCubit>(),
+            ),
           ),
 
           // HISTORY
@@ -123,7 +130,10 @@ class CheckmateApp extends StatelessWidget {
           ),
 
           // PROFILE
-          BlocProvider<ProfileCubit>(create: (_) => ProfileCubit(leaveRepo)),
+          BlocProvider<ProfileCubit>(
+            create: (context) =>
+                ProfileCubit(leaveRepo, context.read<AuthCubit>()),
+          ),
         ],
         child: MaterialApp(
           debugShowCheckedModeBanner: false,

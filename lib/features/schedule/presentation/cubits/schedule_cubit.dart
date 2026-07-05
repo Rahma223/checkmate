@@ -1,8 +1,11 @@
+import 'package:checkmate/core/errors/failures.dart';
 import 'package:equatable/equatable.dart';
+import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:checkmate/domain/entities/entities.dart';
 import 'package:checkmate/domain/repositories/repositories.dart';
+import 'package:checkmate/features/auth/presentation/cubits/auth_cubit.dart';
 
 class ScheduleState extends Equatable {
   final DateTime selectedMonth;
@@ -60,16 +63,22 @@ class ScheduleState extends Equatable {
 class ScheduleCubit extends Cubit<ScheduleState> {
   final ScheduleRepository _scheduleRepo;
   final LeaveRepository _leaveRepo;
+  final AuthCubit _authCubit;
 
-  ScheduleCubit(this._scheduleRepo, this._leaveRepo) : super(ScheduleState()) {
+  ScheduleCubit(this._scheduleRepo, this._leaveRepo, this._authCubit)
+    : super(ScheduleState()) {
     loadMonth(DateTime.now());
   }
 
   Future<void> loadMonth(DateTime month) async {
     emit(state.copyWith(isLoading: true, selectedMonth: month));
+    final authState = _authCubit.state;
+
     final results = await Future.wait([
       _scheduleRepo.getMonthShifts(month),
-      _leaveRepo.getLeaves(),
+      authState is AuthAuthenticated
+          ? _leaveRepo.getUserLeaves(authState.user.id)
+          : Future.value(const Right<Failure, List<LeaveEntity>>([])),
     ]);
     final shifts = (results[0] as dynamic).fold(
       (_) => <ShiftEntity>[],

@@ -3,8 +3,10 @@ import 'package:checkmate/core/errors/failures.dart';
 import '../entities/leave_entity.dart';
 
 abstract class LeaveRepository {
-  Future<Either<Failure, List<LeaveEntity>>> getLeaves();
+  Future<Either<Failure, void>> createLeave(LeaveEntity leave);
+  Future<Either<Failure, List<LeaveEntity>>> getUserLeaves(String userId);
   Future<Either<Failure, LeaveEntity>> submitLeave({
+    required String userId,
     required String type,
     required DateTime fromDate,
     required DateTime toDate,
