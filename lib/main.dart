@@ -105,8 +105,11 @@ class CheckmateApp extends StatelessWidget {
 
           // SCHEDULE
           BlocProvider<ScheduleCubit>(
-            create: (context) =>
-                ScheduleCubit(scheduleRepo, context.read<AuthCubit>()),
+            create: (context) => ScheduleCubit(
+              scheduleRepo,
+              leaveRepo,
+              context.read<AuthCubit>(),
+            ),
           ),
 
           // HISTORY
