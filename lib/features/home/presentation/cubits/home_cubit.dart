@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:checkmate/core/services/geofence_service.dart';
 import 'package:checkmate/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:checkmate/domain/entities/entities.dart';
@@ -96,14 +97,8 @@ class HomeCubit extends Cubit<HomeState> {
       if (authState is AuthAuthenticated) {
         load();
       } else if (authState is AuthUnauthenticated) {
-        // Clear attendance cache and reset home state when user logs out
         try {
-          // AttendanceRepositoryImpl exposes clearCache()
-          if (_attendanceRepo is dynamic) {
-            try {
-              (_attendanceRepo as dynamic).clearCache();
-            } catch (_) {}
-          }
+          (_attendanceRepo as dynamic).clearCache();
         } catch (_) {}
 
         emit(const HomeState());
@@ -129,8 +124,6 @@ class HomeCubit extends Cubit<HomeState> {
       emit(state.copyWith(isLoading: false, isSyncing: false));
       return;
     }
-
-    print('HomeCubit.load: user=${authState.user.id}');
 
     final results = await Future.wait([
       _attendanceRepo.getTodayRecord(userId: authState.user.id),
@@ -159,9 +152,6 @@ class HomeCubit extends Cubit<HomeState> {
         isLoading: false,
         unreadNotifications: unread,
       ),
-    );
-    print(
-      'HomeCubit.load: todayRecord=${todayRecord?.id}, breaks=${todayRecord?.breaks.length ?? 0}',
     );
 
     await refreshGeofenceStatus();
@@ -242,17 +232,33 @@ class HomeCubit extends Cubit<HomeState> {
       return;
     }
 
+    final position = await _getCurrentPositionForCheckIn();
+    if (position == null) {
+      emit(state.copyWith(actionInProgress: ''));
+      return;
+    }
+
     final result = await _attendanceRepo.checkIn(
       userId: userId,
-      lat: 40.7484,
-      lng: -73.9967,
-      location: 'HQ - Tower A',
+      lat: position.latitude,
+      lng: position.longitude,
+      location: authState.user.workLocation,
     );
 
     result.fold(
       (f) => emit(state.copyWith(error: f.message, actionInProgress: '')),
       (r) => emit(state.copyWith(todayRecord: r, actionInProgress: '')),
     );
+  }
+
+  Future<Position?> _getCurrentPositionForCheckIn() async {
+    try {
+      return await _geofenceService.getCurrentLocation();
+    } catch (e) {
+      final message = e.toString().replaceFirst('Exception: ', '');
+      emit(state.copyWith(error: message));
+      return null;
+    }
   }
 
   Future<void> checkOut() async {

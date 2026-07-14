@@ -290,12 +290,6 @@ class _RecordTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('========== HISTORY RECORD ==========');
-    print('STATUS: ${record.status}');
-    print('CHECK IN: ${record.checkIn}');
-    print('CHECK OUT: ${record.checkOut}');
-    print('====================================');
-
     return GestureDetector(
       onTap: () => showModalBottomSheet(
         context: context,

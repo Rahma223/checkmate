@@ -1,7 +1,5 @@
-import 'package:dartz/dartz.dart';
-import 'package:checkmate/core/errors/failures.dart';
-import '../entities/shift_entity.dart';
+import 'package:checkmate/features/schedule/domain/entities/schedule_entity.dart';
 
 abstract class ScheduleRepository {
-  Future<Either<Failure, List<ShiftEntity>>> getMonthShifts(DateTime month);
+  Future<List<ScheduleEntity>> getUserSchedule(String userId);
 }

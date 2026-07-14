@@ -1,95 +1,76 @@
-import 'package:checkmate/core/errors/failures.dart';
-import 'package:equatable/equatable.dart';
-import 'package:dartz/dartz.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:checkmate/domain/entities/entities.dart';
-import 'package:checkmate/domain/repositories/repositories.dart';
 import 'package:checkmate/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:checkmate/features/schedule/domain/entities/schedule_entity.dart';
+import 'package:checkmate/features/schedule/domain/repositories/schedule_repository.dart';
+import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-class ScheduleState extends Equatable {
-  final DateTime selectedMonth;
-  final DateTime selectedDay;
-  final List<ShiftEntity> shifts;
-  final List<LeaveEntity> leaves;
-  final bool isLoading;
-  final String? error;
-
-  ScheduleState({
-    DateTime? selectedMonth,
-    DateTime? selectedDay,
-    this.shifts = const [],
-    this.leaves = const [],
-    this.isLoading = false,
-    this.error,
-  }) : selectedMonth =
-           selectedMonth ?? DateTime(DateTime.now().year, DateTime.now().month),
-       selectedDay = selectedDay ?? DateTime.now();
-
-  List<ShiftEntity> get selectedDayShifts =>
-      shifts.where((s) => DateUtils.isSameDay(s.date, selectedDay)).toList();
-
-  bool hasShift(DateTime d) =>
-      shifts.any((s) => DateUtils.isSameDay(s.date, d));
-  bool hasLeave(DateTime d) =>
-      leaves.any((l) => !d.isBefore(l.fromDate) && !d.isAfter(l.toDate));
-
-  ScheduleState copyWith({
-    DateTime? selectedMonth,
-    DateTime? selectedDay,
-    List<ShiftEntity>? shifts,
-    List<LeaveEntity>? leaves,
-    bool? isLoading,
-    String? error,
-  }) => ScheduleState(
-    selectedMonth: selectedMonth ?? this.selectedMonth,
-    selectedDay: selectedDay ?? this.selectedDay,
-    shifts: shifts ?? this.shifts,
-    leaves: leaves ?? this.leaves,
-    isLoading: isLoading ?? this.isLoading,
-    error: error ?? this.error,
-  );
+abstract class ScheduleState extends Equatable {
+  const ScheduleState();
 
   @override
-  List<Object?> get props => [
-    selectedMonth,
-    selectedDay,
-    shifts,
-    leaves,
-    isLoading,
-  ];
+  List<Object?> get props => [];
+}
+
+class ScheduleInitial extends ScheduleState {
+  const ScheduleInitial();
+}
+
+class ScheduleLoading extends ScheduleState {
+  const ScheduleLoading();
+}
+
+class ScheduleLoaded extends ScheduleState {
+  final List<ScheduleEntity> schedules;
+
+  const ScheduleLoaded(this.schedules);
+
+  @override
+  List<Object?> get props => [schedules];
+}
+
+class ScheduleError extends ScheduleState {
+  final String message;
+
+  const ScheduleError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class ScheduleCubit extends Cubit<ScheduleState> {
   final ScheduleRepository _scheduleRepo;
-  final LeaveRepository _leaveRepo;
   final AuthCubit _authCubit;
 
-  ScheduleCubit(this._scheduleRepo, this._leaveRepo, this._authCubit)
-    : super(ScheduleState()) {
-    loadMonth(DateTime.now());
+  ScheduleCubit(this._scheduleRepo, this._authCubit)
+    : super(const ScheduleInitial());
+
+  Future<void> loadSchedule() async {
+    final userId = _authCubit.currentUser?.id;
+
+    if (userId == null || userId.isEmpty) {
+      emit(const ScheduleError('Please sign in to view your schedule.'));
+      return;
+    }
+
+    emit(const ScheduleLoading());
+
+    try {
+      final schedules = await _scheduleRepo.getUserSchedule(userId);
+      emit(ScheduleLoaded(schedules));
+    } catch (e) {
+      emit(ScheduleError(_messageFromError(e)));
+    }
   }
 
-  Future<void> loadMonth(DateTime month) async {
-    emit(state.copyWith(isLoading: true, selectedMonth: month));
-    final authState = _authCubit.state;
+  String _messageFromError(Object error) {
+    final message = error.toString();
+    if (message.startsWith('ApiException')) {
+      final index = message.indexOf(': ');
+      if (index != -1 && index + 2 < message.length) {
+        return message.substring(index + 2);
+      }
+    }
 
-    final results = await Future.wait([
-      _scheduleRepo.getMonthShifts(month),
-      authState is AuthAuthenticated
-          ? _leaveRepo.getUserLeaves(authState.user.id)
-          : Future.value(const Right<Failure, List<LeaveEntity>>([])),
-    ]);
-    final shifts = (results[0] as dynamic).fold(
-      (_) => <ShiftEntity>[],
-      (r) => r,
-    );
-    final leaves = (results[1] as dynamic).fold(
-      (_) => <LeaveEntity>[],
-      (r) => r,
-    );
-    emit(state.copyWith(shifts: shifts, leaves: leaves, isLoading: false));
+    return message.isEmpty ? 'Failed to load schedule.' : message;
   }
-
-  void selectDay(DateTime day) => emit(state.copyWith(selectedDay: day));
 }

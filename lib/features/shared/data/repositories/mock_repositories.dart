@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:checkmate/core/errors/failures.dart';
+import 'package:checkmate/core/utils/app_utils.dart';
 import 'package:checkmate/domain/entities/entities.dart';
 import 'package:checkmate/domain/repositories/repositories.dart';
 
@@ -329,31 +330,35 @@ class MockTaskRepository implements TaskRepository {
 
 class MockScheduleRepository implements ScheduleRepository {
   @override
-  Future<Either<Failure, List<ShiftEntity>>> getMonthShifts(
-    DateTime month,
-  ) async {
+  Future<List<ScheduleEntity>> getUserSchedule(String userId) async {
     await Future.delayed(const Duration(milliseconds: 500));
-    final shifts = <ShiftEntity>[];
+    final now = DateTime.now();
+    final month = DateTime(now.year, now.month);
+    final schedules = <ScheduleEntity>[];
     final days = DateUtils.getDaysInMonth(month.year, month.month);
     for (int d = 1; d <= days; d++) {
       final date = DateTime(month.year, month.month, d);
-      if (date.weekday >= 6) continue;
-      shifts.add(
-        ShiftEntity(
-          id: 'shift_${month.month}_$d',
-          date: date,
-          startTime: '09:00',
-          endTime: d % 5 == 0 ? '18:30' : '17:30',
-          location: d % 8 == 0 ? 'Remote' : 'HQ - Tower A',
-          type: d % 8 == 0
-              ? 'remote'
-              : d % 5 == 0
-              ? 'overtime'
-              : 'regular',
+      final isWorkingDay = date.weekday < 6;
+      schedules.add(
+        ScheduleEntity(
+          id: 'schedule_${month.month}_$d',
+          userId: userId,
+          day: AppUtils.formatDayName(date),
+          workDate: date,
+          shiftStart: DateTime(date.year, date.month, date.day, 9),
+          shiftEnd: DateTime(
+            date.year,
+            date.month,
+            date.day,
+            d % 5 == 0 ? 18 : 17,
+            d % 5 == 0 ? 30 : 30,
+          ),
+          workLocation: d % 8 == 0 ? 'Remote' : 'HQ - Tower A',
+          isWorkingDay: isWorkingDay,
         ),
       );
     }
-    return Right(shifts);
+    return schedules;
   }
 }
 

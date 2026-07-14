@@ -8,14 +8,18 @@ import 'package:checkmate/domain/repositories/repositories.dart';
 
 class ProfileState extends Equatable {
   final List<LeaveEntity> leaves;
+  final MonthlyStatsEntity? monthlyStats;
   final bool isLoading;
+  final bool isStatsLoading;
   final bool isSubmitting;
   final String? error;
   final String? successMessage;
 
   const ProfileState({
     this.leaves = const [],
+    this.monthlyStats,
     this.isLoading = true,
+    this.isStatsLoading = false,
     this.isSubmitting = false,
     this.error,
     this.successMessage,
@@ -23,13 +27,17 @@ class ProfileState extends Equatable {
 
   ProfileState copyWith({
     List<LeaveEntity>? leaves,
+    MonthlyStatsEntity? monthlyStats,
     bool? isLoading,
+    bool? isStatsLoading,
     bool? isSubmitting,
     String? error,
     String? successMessage,
   }) => ProfileState(
     leaves: leaves ?? this.leaves,
+    monthlyStats: monthlyStats ?? this.monthlyStats,
     isLoading: isLoading ?? this.isLoading,
+    isStatsLoading: isStatsLoading ?? this.isStatsLoading,
     isSubmitting: isSubmitting ?? this.isSubmitting,
     error: error,
     successMessage: successMessage,
@@ -38,7 +46,9 @@ class ProfileState extends Equatable {
   @override
   List<Object?> get props => [
     leaves,
+    monthlyStats,
     isLoading,
+    isStatsLoading,
     isSubmitting,
     error,
     successMessage,
@@ -47,20 +57,24 @@ class ProfileState extends Equatable {
 
 class ProfileCubit extends Cubit<ProfileState> {
   final LeaveRepository _leaveRepo;
+  final AttendanceRepository _attendanceRepo;
   final AuthCubit _authCubit;
   late final StreamSubscription _authSubscription;
 
-  ProfileCubit(this._leaveRepo, this._authCubit) : super(const ProfileState()) {
+  ProfileCubit(this._leaveRepo, this._attendanceRepo, this._authCubit)
+    : super(const ProfileState()) {
     _authSubscription = _authCubit.stream.listen((authState) {
       if (authState is AuthAuthenticated) {
-        loadUserLeaves();
+        loadProfileData();
       } else if (authState is AuthUnauthenticated) {
-        emit(state.copyWith(leaves: [], isLoading: false));
+        emit(
+          state.copyWith(leaves: [], isLoading: false, isStatsLoading: false),
+        );
       }
     });
 
     if (_authCubit.state is AuthAuthenticated) {
-      loadUserLeaves();
+      loadProfileData();
     } else {
       emit(state.copyWith(isLoading: false));
     }
@@ -76,6 +90,10 @@ class ProfileCubit extends Cubit<ProfileState> {
     await loadUserLeaves();
   }
 
+  Future<void> loadProfileData() async {
+    await Future.wait([loadUserLeaves(), loadMonthlyStats()]);
+  }
+
   Future<void> loadUserLeaves() async {
     final authState = _authCubit.state;
 
@@ -89,6 +107,26 @@ class ProfileCubit extends Cubit<ProfileState> {
     result.fold(
       (f) => emit(state.copyWith(isLoading: false, error: f.message)),
       (l) => emit(state.copyWith(leaves: l, isLoading: false)),
+    );
+  }
+
+  Future<void> loadMonthlyStats({DateTime? month}) async {
+    final authState = _authCubit.state;
+
+    if (authState is! AuthAuthenticated) {
+      emit(state.copyWith(isStatsLoading: false, error: 'User not logged in'));
+      return;
+    }
+
+    emit(state.copyWith(isStatsLoading: true));
+    final result = await _attendanceRepo.getMonthlyStats(
+      month ?? DateTime.now(),
+      userId: authState.user.id,
+    );
+    result.fold(
+      (f) => emit(state.copyWith(isStatsLoading: false, error: f.message)),
+      (stats) =>
+          emit(state.copyWith(monthlyStats: stats, isStatsLoading: false)),
     );
   }
 

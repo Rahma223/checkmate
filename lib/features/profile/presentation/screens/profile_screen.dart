@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:checkmate/core/settings/app_settings_cubit.dart';
 import 'package:checkmate/core/theme/app_theme.dart';
 // util helpers not used in this file
 import 'package:checkmate/domain/entities/entities.dart';
@@ -82,7 +83,13 @@ class _ProfileTabsState extends State<_ProfileTabs>
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _OverviewTab(user: user),
+                      BlocBuilder<ProfileCubit, ProfileState>(
+                        builder: (context, profileState) => _OverviewTab(
+                          user: user,
+                          stats: profileState.monthlyStats,
+                          isStatsLoading: profileState.isStatsLoading,
+                        ),
+                      ),
                       _LeaveTab(),
                       _SettingsTab(onLogout: widget.onLogout),
                     ],
@@ -404,7 +411,9 @@ class _TabBar extends StatelessWidget {
 
 class _OverviewTab extends StatelessWidget {
   final UserEntity? user;
-  const _OverviewTab({this.user});
+  final MonthlyStatsEntity? stats;
+  final bool isStatsLoading;
+  const _OverviewTab({this.user, this.stats, this.isStatsLoading = false});
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -464,31 +473,46 @@ class _OverviewTab extends StatelessWidget {
       const SizedBox(height: 16),
       _SectionCard(
         title: 'This Month Stats',
-        children: [
-          _MiniStatRow(
-            label: 'Days Present',
-            value: '18 / 23',
-            color: AppColors.success,
-          ),
-          const Divider(),
-          _MiniStatRow(
-            label: 'Total Worked',
-            value: '153.5 hrs',
-            color: AppColors.primary,
-          ),
-          const Divider(),
-          _MiniStatRow(
-            label: 'Overtime',
-            value: '6.5 hrs',
-            color: AppColors.warning,
-          ),
-          const Divider(),
-          _MiniStatRow(
-            label: 'Punctuality',
-            value: '91%',
-            color: AppColors.success,
-          ),
-        ],
+        children: isStatsLoading
+            ? const [
+                Padding(
+                  padding: EdgeInsets.all(18),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ]
+            : [
+                _MiniStatRow(
+                  label: 'Days Present',
+                  value: stats != null
+                      ? '${stats!.present} / ${stats!.workingDays}'
+                      : '--',
+                  color: AppColors.success,
+                ),
+                const Divider(),
+                _MiniStatRow(
+                  label: 'Total Worked',
+                  value: stats != null
+                      ? '${stats!.totalHours.toStringAsFixed(1)} hrs'
+                      : '--',
+                  color: AppColors.primary,
+                ),
+                const Divider(),
+                _MiniStatRow(
+                  label: 'Overtime',
+                  value: stats != null
+                      ? '${stats!.overtimeHours.toStringAsFixed(1)} hrs'
+                      : '--',
+                  color: AppColors.warning,
+                ),
+                const Divider(),
+                _MiniStatRow(
+                  label: 'Punctuality',
+                  value: stats != null
+                      ? '${stats!.attendancePct.toStringAsFixed(0)}%'
+                      : '--',
+                  color: AppColors.success,
+                ),
+              ],
       ),
     ],
   );
@@ -611,7 +635,6 @@ class _SettingsTab extends StatefulWidget {
 class _SettingsTabState extends State<_SettingsTab> {
   bool _notif = true;
   bool _biometric = false;
-  bool _darkMode = false;
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -634,12 +657,14 @@ class _SettingsTabState extends State<_SettingsTab> {
             value: _biometric,
             onChanged: (v) => setState(() => _biometric = v),
           ),
-          _SwitchTile(
-            icon: Icons.dark_mode_outlined,
-            label: 'Dark Mode',
-            sub: 'Switch to dark theme',
-            value: _darkMode,
-            onChanged: (v) => setState(() => _darkMode = v),
+          BlocBuilder<AppSettingsCubit, AppSettingsState>(
+            builder: (context, settings) => _SwitchTile(
+              icon: Icons.dark_mode_outlined,
+              label: 'Dark Mode',
+              sub: 'Switch to dark theme',
+              value: settings.isDarkMode,
+              onChanged: context.read<AppSettingsCubit>().setDarkMode,
+            ),
           ),
         ],
       ),

@@ -1,11 +1,14 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:checkmate/features/auth/data/services/auth_local_data_source.dart';
 
 class ApiClient {
   ApiClient._();
 
-  static const String baseUrl =
-      'https://checkmate-directus.csiwm3.easypanel.host';
+  static const String baseUrl = String.fromEnvironment(
+    'CHECKMATE_API_BASE_URL',
+    defaultValue: 'https://checkmate-directus.csiwm3.easypanel.host',
+  );
 
   static Dio create() {
     final dio = Dio(
@@ -44,7 +47,11 @@ class ApiClient {
       ),
     );
 
-    dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+    if (kDebugMode) {
+      dio.interceptors.add(
+        LogInterceptor(requestBody: true, responseBody: true),
+      );
+    }
 
     return dio;
   }

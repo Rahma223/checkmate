@@ -1,16 +1,19 @@
 import 'package:checkmate/core/network/api_client.dart';
+import 'package:checkmate/core/settings/app_settings_cubit.dart';
 import 'package:checkmate/core/services/geofence_service.dart';
 import 'package:checkmate/core/theme/app_theme.dart';
 
 import 'package:checkmate/features/attendance/data/repositories/attendance_repository_impl.dart';
 import 'package:checkmate/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:checkmate/features/profile/data/repositories/leave_repository_impl.dart';
+import 'package:checkmate/features/schedule/data/repositories/schedule_repository_impl.dart';
 import 'package:checkmate/features/shared/data/repositories/mock_repositories.dart';
 
 import 'package:checkmate/features/attendance/data/services/attendance_remote_data_source.dart';
 import 'package:checkmate/features/auth/data/services/auth_local_data_source.dart';
 import 'package:checkmate/features/auth/data/services/auth_remote_data_source.dart';
 import 'package:checkmate/features/profile/data/services/leave_remote_data_source.dart';
+import 'package:checkmate/features/schedule/data/services/schedule_remote_data_source.dart';
 
 import 'package:checkmate/domain/repositories/repositories.dart';
 
@@ -38,7 +41,6 @@ void main() async {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
-  await AuthLocalDataSource().clearToken();
   runApp(const CheckmateApp());
 }
 
@@ -57,6 +59,7 @@ class CheckmateApp extends StatelessWidget {
 
     final attendanceRemote = AttendanceRemoteDataSource(apiClient);
     final leaveRemote = LeaveRemoteDataSource(apiClient);
+    final scheduleRemote = ScheduleRemoteDataSource(apiClient);
     final geofenceService = GeofenceService();
 
     // REPOSITORIES
@@ -64,10 +67,10 @@ class CheckmateApp extends StatelessWidget {
 
     final attendanceRepo = AttendanceRepositoryImpl(attendanceRemote);
     final leaveRepo = LeaveRepositoryImpl(leaveRemote);
+    final scheduleRepo = ScheduleRepositoryImpl(scheduleRemote);
 
     // MOCK REPOSITORIES
     final taskRepo = MockTaskRepository();
-    final scheduleRepo = MockScheduleRepository();
     final teamRepo = MockTeamRepository();
     final notifRepo = MockNotificationRepository();
 
@@ -102,11 +105,8 @@ class CheckmateApp extends StatelessWidget {
 
           // SCHEDULE
           BlocProvider<ScheduleCubit>(
-            create: (context) => ScheduleCubit(
-              scheduleRepo,
-              leaveRepo,
-              context.read<AuthCubit>(),
-            ),
+            create: (context) =>
+                ScheduleCubit(scheduleRepo, context.read<AuthCubit>()),
           ),
 
           // HISTORY
@@ -131,15 +131,25 @@ class CheckmateApp extends StatelessWidget {
 
           // PROFILE
           BlocProvider<ProfileCubit>(
-            create: (context) =>
-                ProfileCubit(leaveRepo, context.read<AuthCubit>()),
+            create: (context) => ProfileCubit(
+              leaveRepo,
+              attendanceRepo,
+              context.read<AuthCubit>(),
+            ),
           ),
+
+          // SETTINGS
+          BlocProvider<AppSettingsCubit>(create: (_) => AppSettingsCubit()),
         ],
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Checkmate',
-          theme: AppTheme.light,
-          home: const RootNavigator(),
+        child: BlocBuilder<AppSettingsCubit, AppSettingsState>(
+          builder: (context, settings) => MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'Checkmate',
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: settings.themeMode,
+            home: const RootNavigator(),
+          ),
         ),
       ),
     );
@@ -155,23 +165,29 @@ class RootNavigator extends StatefulWidget {
 
 class _RootNavigatorState extends State<RootNavigator> {
   bool _initialized = false;
+  bool _initStarted = false;
+  late AuthCubit _authCubit;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initStarted) return;
 
-    Future.microtask(() async {
-      // Ensure splash shows for at least 5 seconds while auth check runs
-      await Future.wait([
-        context.read<AuthCubit>().checkAuth(),
-        Future.delayed(const Duration(seconds: 5)),
-      ]);
+    _initStarted = true;
+    _authCubit = context.read<AuthCubit>();
+    _initialize();
+  }
 
-      if (mounted) {
-        setState(() {
-          _initialized = true;
-        });
-      }
+  Future<void> _initialize() async {
+    // Ensure splash shows for at least 5 seconds while auth check runs.
+    await Future.wait([
+      _authCubit.checkAuth(),
+      Future.delayed(const Duration(seconds: 5)),
+    ]);
+
+    if (!mounted) return;
+    setState(() {
+      _initialized = true;
     });
   }
 

@@ -32,9 +32,7 @@ class AttendanceRemoteDataSource {
   // =========================
   // CHECK OUT
   // =========================
-  Future<Map<String, dynamic>> checkOut({
-    required String attendanceId,
-  }) async {
+  Future<Map<String, dynamic>> checkOut({required String attendanceId}) async {
     final response = await dio.patch(
       '/items/attendance/$attendanceId',
       data: {
@@ -57,8 +55,7 @@ class AttendanceRemoteDataSource {
       "filter[user][_eq]": userId,
       "sort": "-check_in",
       "fields": "*,breaks.*",
-      if (status != null && status != 'all')
-        "filter[status][_eq]": status,
+      if (status != null && status != 'all') "filter[status][_eq]": status,
     };
 
     final response = await dio.get(
@@ -72,9 +69,7 @@ class AttendanceRemoteDataSource {
   // =========================
   // TODAY RECORD
   // =========================
-  Future<Map<String, dynamic>?> getTodayRecord({
-    required String userId,
-  }) async {
+  Future<Map<String, dynamic>?> getTodayRecord({required String userId}) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final tomorrow = today.add(const Duration(days: 1));
@@ -105,31 +100,22 @@ class AttendanceRemoteDataSource {
     required String attendanceId,
     required String type,
   }) async {
-    try {
-      final response = await dio.post(
-        '/items/breaks',
-        data: {
-          "attendance": attendanceId,
-          "type": type,
-          "start_time": DateTime.now().toIso8601String(),
-        },
-      );
+    final response = await dio.post(
+      '/items/breaks',
+      data: {
+        "attendance": attendanceId,
+        "type": type,
+        "start_time": DateTime.now().toIso8601String(),
+      },
+    );
 
-      return response.data['data'];
-    } on DioException catch (e) {
-      print("BREAK ERROR: ${e.response?.data}");
-      rethrow;
-    }
+    return response.data['data'];
   }
 
-  Future<Map<String, dynamic>> endBreak({
-    required String breakId,
-  }) async {
+  Future<Map<String, dynamic>> endBreak({required String breakId}) async {
     final response = await dio.patch(
       '/items/breaks/$breakId',
-      data: {
-        "end_time": DateTime.now().toIso8601String(),
-      },
+      data: {"end_time": DateTime.now().toIso8601String()},
     );
 
     return response.data['data'];

@@ -75,17 +75,12 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     required String userId,
   }) async {
     try {
-      print('AttendanceRepositoryImpl.getTodayRecord user=$userId');
       final data = await remoteDataSource.getTodayRecord(userId: userId);
       if (data == null) {
-        print('AttendanceRepositoryImpl.getTodayRecord: no record found');
         return const Right(null);
       }
 
       final attendance = _mergeCachedBreaks(AttendanceModel.fromJson(data));
-      print(
-        'AttendanceRepositoryImpl.getTodayRecord: loaded record=${attendance.id} breaks=${attendance.breaks.length}',
-      );
       _currentAttendance = attendance;
       return Right(attendance);
     } catch (e) {
@@ -109,11 +104,6 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
             (e) => AttendanceModel.fromJson(e as Map<String, dynamic>),
           )
           .toList();
-
-      for (final item in history) {
-        print("Attendance: ${item.id}");
-        print("Break Count: ${item.breaks.length}");
-      }
 
       return Right(history);
     } catch (e) {
@@ -189,9 +179,6 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
           return Left(ServerFailure('No active attendance found'));
         }
 
-        print(
-          'AttendanceRepositoryImpl.checkOut: user=$userId attendance=${record.id}',
-        );
         await remoteDataSource.checkOut(attendanceId: record.id);
 
         final refreshedResult = await getTodayRecord(userId: userId);
