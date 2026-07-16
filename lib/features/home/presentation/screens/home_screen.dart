@@ -36,7 +36,7 @@ class HomeScreen extends StatelessWidget {
           ScaffoldMessenger.of(ctx).showSnackBar(
             SnackBar(
               content: Text(state.error!),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(ctx).colorScheme.error,
             ),
           );
           ctx.read<HomeCubit>().clearError();
@@ -50,9 +50,9 @@ class HomeScreen extends StatelessWidget {
 
         if (completedCheckIn) {
           ScaffoldMessenger.of(ctx).showSnackBar(
-            const SnackBar(
-              content: Text('Checked in successfully!'),
-              backgroundColor: AppColors.success,
+            SnackBar(
+              content: const Text('Checked in successfully!'),
+              backgroundColor: SemanticColors.of(ctx).success,
             ),
           );
         }
@@ -61,10 +61,10 @@ class HomeScreen extends StatelessWidget {
         final user = ctx.read<AuthCubit>().currentUser;
 
         return Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: _buildAppBar(ctx, user, state),
           body: RefreshIndicator(
-            color: AppColors.primary,
+            color: Theme.of(context).colorScheme.primary,
             onRefresh: () => ctx.read<HomeCubit>().load(),
             child: state.isLoading
                 ? const _HomeShimmer()
@@ -121,14 +121,14 @@ class HomeScreen extends StatelessWidget {
         padding: const EdgeInsets.only(left: 20),
         child: Icon(
           Icons.grid_view_rounded,
-          color: AppColors.primary,
+          color: Theme.of(ctx).colorScheme.primary,
           size: 24,
         ),
       ),
-      title: const Text(
+      title: Text(
         'Checkmate',
         style: TextStyle(
-          color: AppColors.primary,
+          color: Theme.of(ctx).colorScheme.primary,
           fontSize: 17,
           fontWeight: FontWeight.w800,
         ),
@@ -155,35 +155,38 @@ class HomeScreen extends StatelessWidget {
 class _SyncBanner extends StatelessWidget {
   const _SyncBanner();
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-    decoration: BoxDecoration(
-      color: AppColors.tertiaryFixed,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.tertiaryContainer.withOpacity(0.3)),
-    ),
-    child: const Row(
-      children: [
-        SizedBox(
-          width: 16,
-          height: 16,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: AppColors.tertiary,
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: colors.tertiaryContainer.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.tertiaryContainer.withOpacity(0.5)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: colors.tertiary,
+            ),
           ),
-        ),
-        SizedBox(width: 10),
-        Text(
-          'Syncing data...',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppColors.onTertiaryFixedVariant,
+          const SizedBox(width: 10),
+          Text(
+            'Syncing data...',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: colors.onTertiaryContainer,
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _GreetingSection extends StatelessWidget {
@@ -196,17 +199,17 @@ class _GreetingSection extends StatelessWidget {
     children: [
       Text(
         '${AppUtils.getGreeting()}, ${user?.firstName ?? 'there'} 👋',
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 22,
           fontWeight: FontWeight.w800,
-          color: AppColors.onSurface,
+          color: Theme.of(context).colorScheme.onSurface,
           letterSpacing: -0.4,
         ),
       ),
       const SizedBox(height: 3),
       Text(
         '${AppUtils.formatTime(DateTime.now())} • ${AppUtils.formatDate(DateTime.now())}',
-        style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
+        style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     ],
   );
@@ -217,88 +220,91 @@ class _MapPreviewCard extends StatelessWidget {
   const _MapPreviewCard({required this.onTap});
 
   @override
-  Widget build(BuildContext context) => BlocBuilder<HomeCubit, HomeState>(
-    builder: (ctx, state) => GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 160,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.outlineVariant, width: 0.5),
-        ),
-        child: Stack(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: LatLng(30.0444, 31.2357),
-                  zoom: 14,
-                ),
-                zoomControlsEnabled: false,
-                myLocationButtonEnabled: false,
-              ),
-            ),
-            Positioned(
-              left: 12,
-              top: 12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 8,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.location_on_rounded, size: 14),
-                    const SizedBox(width: 8),
-                    Text(
-                      state.todayRecord?.location ?? 'Inside Workspace',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return BlocBuilder<HomeCubit, HomeState>(
+      builder: (ctx, state) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 160,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: colors.outlineVariant, width: 0.5),
+          ),
+          child: Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: GoogleMap(
+                  initialCameraPosition: const CameraPosition(
+                    target: LatLng(30.0444, 31.2357),
+                    zoom: 14,
+                  ),
+                  zoomControlsEnabled: false,
+                  myLocationButtonEnabled: false,
                 ),
               ),
-            ),
-            Positioned(
-              right: 12,
-              bottom: 12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'View Map',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
+              Positioned(
+                left: 12,
+                top: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors.shadow.withOpacity(0.04),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.location_on_rounded, size: 14),
+                      const SizedBox(width: 8),
+                      Text(
+                        state.todayRecord?.location ?? 'Inside Workspace',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-          ],
+              Positioned(
+                right: 12,
+                bottom: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.primary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'View Map',
+                    style: TextStyle(
+                      color: colors.onPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _StatusCard extends StatefulWidget {
@@ -324,6 +330,7 @@ class _StatusCardState extends State<_StatusCard>
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final s = widget.state;
     final isIn = s.isCheckedIn;
     final isOut = s.isCheckedOut;
@@ -332,17 +339,17 @@ class _StatusCardState extends State<_StatusCard>
     final canCheckIn =
         isIn || isBrk || (!s.isCheckingGeofence && s.isInsideGeofence);
     final checkOut = s.todayRecord?.checkOut;
-    final statusColor = AppUtils.statusColor(s.status);
+    final statusColor = AppUtils.statusColor(context, s.status);
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: colors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outlineVariant, width: 0.5),
+        border: Border.all(color: colors.outlineVariant, width: 0.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: colors.shadow.withOpacity(0.04),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -355,12 +362,12 @@ class _StatusCardState extends State<_StatusCard>
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'CURRENT STATUS',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.outline,
+                      color: colors.outline,
                       letterSpacing: 0.8,
                     ),
                   ),
@@ -403,7 +410,7 @@ class _StatusCardState extends State<_StatusCard>
             decoration: BoxDecoration(
               border: Border.symmetric(
                 horizontal: BorderSide(
-                  color: AppColors.outlineVariant.withOpacity(0.4),
+                  color: colors.outlineVariant.withOpacity(0.4),
                 ),
               ),
             ),
@@ -416,7 +423,7 @@ class _StatusCardState extends State<_StatusCard>
                       : '09:00 AM',
                   active: s.todayRecord?.checkIn != null,
                 ),
-                _vLine(),
+                _vLine(colors),
 
                 _TimeCol(
                   label: 'Check Out',
@@ -425,7 +432,7 @@ class _StatusCardState extends State<_StatusCard>
                       : '05:30 PM',
                   active: checkOut != null,
                 ),
-                _vLine(),
+                _vLine(colors),
                 _TimeCol(
                   label: 'Location',
                   value: s.todayRecord?.location ?? 'HQ - Tower A',
@@ -447,19 +454,19 @@ class _StatusCardState extends State<_StatusCard>
                     : () => _handleAction(context, s),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isBrk
-                      ? AppColors.warning
+                      ? SemanticColors.of(context).warning
                       : isIn
-                      ? AppColors.success
-                      : AppColors.primaryContainer,
+                      ? SemanticColors.of(context).success
+                      : colors.primaryContainer,
                   foregroundColor: Colors.white,
                 ),
                 child: busy
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 22,
                         height: 22,
                         child: CircularProgressIndicator(
                           strokeWidth: 2.5,
-                          color: Colors.white,
+                          color: colors.onPrimary,
                         ),
                       )
                     : Row(
@@ -497,10 +504,10 @@ class _StatusCardState extends State<_StatusCard>
     );
   }
 
-  Widget _vLine() => Container(
+  Widget _vLine(ColorScheme colors) => Container(
     width: 1,
     height: 40,
-    color: AppColors.outlineVariant.withOpacity(0.4),
+    color: colors.outlineVariant.withOpacity(0.4),
   );
 
   Future<void> _handleAction(BuildContext context, HomeState s) async {
@@ -518,7 +525,7 @@ class _StatusCardState extends State<_StatusCard>
   void _showCheckOutSheet(BuildContext context, HomeCubit cubit, HomeState s) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -532,7 +539,7 @@ class _StatusCardState extends State<_StatusCard>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLow,
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
@@ -594,15 +601,15 @@ class _SummaryChip extends StatelessWidget {
     children: [
       Text(
         value,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w800,
-          color: AppColors.primary,
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
       Text(
         label,
-        style: const TextStyle(fontSize: 10, color: AppColors.outline),
+        style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.outline),
       ),
     ],
   );
@@ -616,16 +623,18 @@ class _GeofencePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final sem = SemanticColors.of(context);
     final color = isChecking
-        ? AppColors.outline
+        ? colors.outline
         : inside
-        ? AppColors.success
-        : AppColors.error;
+        ? sem.success
+        : colors.error;
     final background = isChecking
-        ? AppColors.surfaceContainerLow
+        ? colors.surfaceContainerLow
         : inside
-        ? AppColors.successContainer
-        : AppColors.errorContainer;
+        ? sem.successContainer
+        : colors.errorContainer;
     final label = isChecking
         ? 'Checking location...'
         : inside
@@ -678,9 +687,9 @@ class _TimeCol extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
-            color: AppColors.outline,
+            color: Theme.of(context).colorScheme.outline,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -691,7 +700,7 @@ class _TimeCol extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: active ? AppColors.primary : AppColors.onSurface,
+            color: active ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
@@ -708,7 +717,7 @@ class _CheckedOutSummary extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: AppColors.primaryFixed.withOpacity(0.3),
+      color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2),
       borderRadius: BorderRadius.circular(12),
     ),
     child: Row(
@@ -746,7 +755,7 @@ class _QuickBreakRow extends StatelessWidget {
           child: _BreakBtn(
             icon: Icons.free_breakfast_outlined,
             label: 'Coffee',
-            color: AppColors.warning,
+            color: SemanticColors.of(context).warning,
             onTap: () => cubit.startBreak('coffee'),
           ),
         ),
@@ -755,7 +764,7 @@ class _QuickBreakRow extends StatelessWidget {
           child: _BreakBtn(
             icon: Icons.restaurant_outlined,
             label: 'Lunch',
-            color: AppColors.tertiary,
+            color: Theme.of(context).colorScheme.tertiary,
             onTap: () => cubit.startBreak('lunch'),
           ),
         ),
@@ -764,7 +773,7 @@ class _QuickBreakRow extends StatelessWidget {
           child: _BreakBtn(
             icon: Icons.person_outlined,
             label: 'Personal',
-            color: AppColors.secondary,
+            color: Theme.of(context).colorScheme.secondary,
             onTap: () => cubit.startBreak('personal'),
           ),
         ),
@@ -835,7 +844,7 @@ class _TodaySummaryGrid extends StatelessWidget {
           children: [
             StatCard(
               icon: Icons.schedule_rounded,
-              iconColor: AppColors.primary,
+              iconColor: Theme.of(context).colorScheme.primary,
               label: 'Worked Today',
               value: record != null
                   ? AppUtils.formatHours(record.workedHours)
@@ -844,7 +853,7 @@ class _TodaySummaryGrid extends StatelessWidget {
             ),
             StatCard(
               icon: Icons.task_alt_rounded,
-              iconColor: AppColors.success,
+              iconColor: SemanticColors.of(context).success,
               label: 'Tasks',
               value: '${state.tasks.length}',
               sub:
@@ -852,7 +861,7 @@ class _TodaySummaryGrid extends StatelessWidget {
             ),
             StatCard(
               icon: Icons.free_breakfast_outlined,
-              iconColor: AppColors.warning,
+              iconColor: SemanticColors.of(context).warning,
               label: 'Break Time',
               value: record != null
                   ? AppUtils.formatDuration(record.breakDuration)
@@ -861,7 +870,7 @@ class _TodaySummaryGrid extends StatelessWidget {
             ),
             StatCard(
               icon: Icons.event_available_rounded,
-              iconColor: AppColors.tertiary,
+              iconColor: Theme.of(context).colorScheme.tertiary,
               label: 'Attendance',
               value: state.monthlyStats != null
                   ? '${state.monthlyStats!.attendancePct.toStringAsFixed(0)}%'
@@ -897,65 +906,68 @@ class _TaskTile extends StatelessWidget {
   const _TaskTile({required this.task});
 
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 10),
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: AppColors.surfaceContainerLowest,
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppColors.outlineVariant, width: 0.5),
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 4,
-          height: 42,
-          decoration: BoxDecoration(
-            color: AppUtils.priorityColor(task.priority),
-            borderRadius: BorderRadius.circular(2),
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.outlineVariant, width: 0.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppUtils.priorityColor(context, task.priority),
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                task.title,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  task.title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 3),
+                const SizedBox(height: 3),
+                Text(
+                  task.projectName ?? task.assignedBy,
+                  style: TextStyle(fontSize: 11, color: colors.outline),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              PriorityChip(priority: task.priority),
+              const SizedBox(height: 4),
               Text(
-                task.projectName ?? task.assignedBy,
-                style: const TextStyle(fontSize: 11, color: AppColors.outline),
+                AppUtils.timeAgo(task.dueDate),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: task.isOverdue ? colors.error : colors.outline,
+                ),
               ),
             ],
           ),
-        ),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            PriorityChip(priority: task.priority),
-            const SizedBox(height: 4),
-            Text(
-              AppUtils.timeAgo(task.dueDate),
-              style: TextStyle(
-                fontSize: 10,
-                color: task.isOverdue ? AppColors.error : AppColors.outline,
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _HomeShimmer extends StatelessWidget {

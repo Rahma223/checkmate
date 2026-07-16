@@ -62,17 +62,18 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        border: const Border(
-          top: BorderSide(color: AppColors.outlineVariant, width: 0.5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
+     final colors = Theme.of(context).colorScheme;
+     return Container(
+       decoration: BoxDecoration(
+         color: colors.surfaceContainerLowest,
+         border: Border(
+           top: BorderSide(color: colors.outlineVariant, width: 0.5),
+         ),
+         boxShadow: [
+           BoxShadow(
+             color: colors.shadow.withOpacity(0.04),
+             blurRadius: 12,
+             offset: const Offset(0, -4),
           ),
         ],
       ),
@@ -155,7 +156,7 @@ class _NavItem extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: active
-              ? AppColors.primaryFixed.withOpacity(0.6)
+              ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
         ),
@@ -165,16 +166,16 @@ class _NavItem extends StatelessWidget {
             Icon(
               active ? activeIcon : icon,
               size: 22,
-              color: active ? AppColors.primary : AppColors.outline,
+              color: active ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
             ),
             if (active) ...[
               const SizedBox(width: 6),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ],

@@ -57,32 +57,44 @@ class AppUtils {
     _                              => 'Not Checked In',
   };
 
-  static Color statusColor(String s) => switch (s) {
-    AppConstants.statusCheckedIn  => AppColors.success,
-    AppConstants.statusOnBreak    => AppColors.warning,
-    AppConstants.statusCheckedOut => AppColors.primary,
-    AppConstants.statusAbsent     => AppColors.error,
-    AppConstants.statusLate       => AppColors.warning,
-    AppConstants.statusOnLeave    => AppColors.secondary,
-    _                             => AppColors.outline,
-  };
+  static Color statusColor(BuildContext context, String s) {
+    final colors = Theme.of(context).colorScheme;
+    final sem = SemanticColors.of(context);
+    return switch (s) {
+      AppConstants.statusCheckedIn  => sem.success,
+      AppConstants.statusOnBreak    => sem.warning,
+      AppConstants.statusCheckedOut => colors.primary,
+      AppConstants.statusAbsent     => colors.error,
+      AppConstants.statusLate       => sem.warning,
+      AppConstants.statusOnLeave    => colors.secondary,
+      _                             => colors.outline,
+    };
+  }
 
-  static Color statusBgColor(String s) => switch (s) {
-    AppConstants.statusCheckedIn  => AppColors.successContainer,
-    AppConstants.statusOnBreak    => AppColors.warningContainer,
-    AppConstants.statusCheckedOut => AppColors.primaryFixed,
-    AppConstants.statusAbsent     => AppColors.errorContainer,
-    AppConstants.statusLate       => AppColors.warningContainer,
-    AppConstants.statusOnLeave    => AppColors.secondaryContainer,
-    _                             => AppColors.surfaceContainerLow,
-  };
+  static Color statusBgColor(BuildContext context, String s) {
+    final colors = Theme.of(context).colorScheme;
+    final sem = SemanticColors.of(context);
+    return switch (s) {
+      AppConstants.statusCheckedIn  => sem.successContainer,
+      AppConstants.statusOnBreak    => sem.warningContainer,
+      AppConstants.statusCheckedOut => colors.primaryContainer.withOpacity(0.2),
+      AppConstants.statusAbsent     => colors.errorContainer,
+      AppConstants.statusLate       => sem.warningContainer,
+      AppConstants.statusOnLeave    => colors.secondaryContainer,
+      _                             => colors.surfaceContainerLow,
+    };
+  }
 
   // ── Priority ─────────────────────────────────────────────
-  static Color priorityColor(String p) => switch (p) {
-    AppConstants.priorityHigh   => AppColors.error,
-    AppConstants.priorityMedium => AppColors.warning,
-    _                           => AppColors.success,
-  };
+  static Color priorityColor(BuildContext context, String p) {
+    final colors = Theme.of(context).colorScheme;
+    final sem = SemanticColors.of(context);
+    return switch (p) {
+      AppConstants.priorityHigh   => colors.error,
+      AppConstants.priorityMedium => sem.warning,
+      _                           => sem.success,
+    };
+  }
 
   // ── Leave Status ─────────────────────────────────────────
   static String leaveStatusLabel(String s) => switch (s) {
@@ -92,20 +104,28 @@ class AppUtils {
     _          => s,
   };
 
-  static Color leaveStatusColor(String s) => switch (s) {
-    'approved' => AppColors.success,
-    'pending'  => AppColors.warning,
-    'rejected' => AppColors.error,
-    _          => AppColors.outline,
-  };
+  static Color leaveStatusColor(BuildContext context, String s) {
+    final colors = Theme.of(context).colorScheme;
+    final sem = SemanticColors.of(context);
+    return switch (s) {
+      'approved' => sem.success,
+      'pending'  => sem.warning,
+      'rejected' => colors.error,
+      _          => colors.outline,
+    };
+  }
 
   // ── Task Status ──────────────────────────────────────────
-  static Color taskStatusColor(String s) => switch (s) {
-    AppConstants.taskCompleted  => AppColors.success,
-    AppConstants.taskInProgress => AppColors.primary,
-    AppConstants.taskOverdue    => AppColors.error,
-    _                           => AppColors.outline,
-  };
+  static Color taskStatusColor(BuildContext context, String s) {
+    final colors = Theme.of(context).colorScheme;
+    final sem = SemanticColors.of(context);
+    return switch (s) {
+      AppConstants.taskCompleted  => sem.success,
+      AppConstants.taskInProgress => colors.primary,
+      AppConstants.taskOverdue    => colors.error,
+      _                           => colors.outline,
+    };
+  }
 
   static String taskStatusLabel(String s) => switch (s) {
     AppConstants.taskCompleted  => 'Completed',
@@ -118,10 +138,12 @@ class AppUtils {
   static double attendancePct(int present, int workingDays) =>
       workingDays == 0 ? 0 : (present / workingDays) * 100;
 
-  static Color attendanceColor(double pct) {
-    if (pct >= 90) return AppColors.success;
-    if (pct >= 75) return AppColors.warning;
-    return AppColors.error;
+  static Color attendanceColor(BuildContext context, double pct) {
+    final colors = Theme.of(context).colorScheme;
+    final sem = SemanticColors.of(context);
+    if (pct >= 90) return sem.success;
+    if (pct >= 75) return sem.warning;
+    return colors.error;
   }
 
   // ── Number formatting ───────────────────────────────────

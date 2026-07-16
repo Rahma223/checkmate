@@ -31,7 +31,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return BlocBuilder<ScheduleCubit, ScheduleState>(
       builder: (ctx, state) {
         return Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
             title: const Text('My Schedule'),
             actions: [
@@ -92,8 +92,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               'Request Leave',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
-            backgroundColor: AppColors.primaryContainer,
-            foregroundColor: Colors.white,
+            backgroundColor: Theme.of(ctx).colorScheme.primary,
+            foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
           ),
         );
       },
@@ -103,7 +103,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   void _showLeaveSheet(BuildContext ctx) => showModalBottomSheet(
     context: ctx,
     isScrollControlled: true,
-    backgroundColor: AppColors.surfaceContainerLowest,
+    backgroundColor: Theme.of(ctx).colorScheme.surfaceContainerLowest,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -131,7 +131,7 @@ class CalendarHeader extends StatelessWidget {
     final cubit = context.read<ScheduleCubit>();
 
     return Container(
-      color: AppColors.surfaceContainerLowest,
+      color: Theme.of(context).colorScheme.surfaceContainerLowest,
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
       child: Column(
         children: [
@@ -142,10 +142,10 @@ class CalendarHeader extends StatelessWidget {
                     child: Center(
                       child: Text(
                         d,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.outline,
+                          color: Theme.of(context).colorScheme.outline,
                         ),
                       ),
                     ),
@@ -177,9 +177,9 @@ class CalendarHeader extends StatelessWidget {
                   margin: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
                     color: isSel
-                        ? AppColors.primary
+                        ? Theme.of(context).colorScheme.primary
                         : isToday
-                        ? AppColors.primaryFixed
+                        ? Theme.of(context).colorScheme.primaryContainer
                         : null,
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -192,12 +192,12 @@ class CalendarHeader extends StatelessWidget {
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: isSel
-                              ? Colors.white
+                              ? Theme.of(context).colorScheme.onPrimary
                               : isToday
-                              ? AppColors.primary
+                              ? Theme.of(context).colorScheme.primary
                               : isWkend
-                              ? AppColors.outline
-                              : AppColors.onSurface,
+                              ? Theme.of(context).colorScheme.outline
+                              : Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       if (hasShift || hasLeave)
@@ -209,15 +209,15 @@ class CalendarHeader extends StatelessWidget {
                               if (hasShift)
                                 Dot(
                                   color: isSel
-                                      ? Colors.white
-                                      : AppColors.primary,
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : Theme.of(context).colorScheme.primary,
                                 ),
                               if (hasLeave) ...[
                                 const SizedBox(width: 2),
                                 Dot(
                                   color: isSel
-                                      ? Colors.white70
-                                      : AppColors.warning,
+                                      ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.7)
+                                      : SemanticColors.of(context).warning,
                                 ),
                               ],
                             ],
@@ -233,14 +233,14 @@ class CalendarHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Legend(color: AppColors.primary, label: 'Work Shift'),
+              Legend(color: Theme.of(context).colorScheme.primary, label: 'Work Shift'),
               const SizedBox(width: 16),
-              const Legend(color: AppColors.warning, label: 'Leave'),
+              Legend(color: SemanticColors.of(context).warning, label: 'Leave'),
               const SizedBox(width: 16),
               Legend(
-                color: AppColors.primaryFixed,
+                color: Theme.of(context).colorScheme.primaryContainer,
                 label: 'Today',
-                border: AppColors.primary,
+                border: Theme.of(context).colorScheme.primary,
               ),
             ],
           ),
@@ -290,7 +290,7 @@ class Legend extends StatelessWidget {
       const SizedBox(width: 5),
       Text(
         label,
-        style: const TextStyle(fontSize: 11, color: AppColors.outline),
+        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.outline),
       ),
     ],
   );
@@ -314,10 +314,10 @@ class DayDetail extends StatelessWidget {
       children: [
         Text(
           AppUtils.formatDateFull(day),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 4),
@@ -327,7 +327,7 @@ class DayDetail extends StatelessWidget {
               : shifts.isEmpty
               ? 'No shift scheduled'
               : '${shifts.length} shift${shifts.length > 1 ? 's' : ''}',
-          style: const TextStyle(fontSize: 12, color: AppColors.outline),
+          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
         ),
         const SizedBox(height: 20),
         if (isWknd)
@@ -354,14 +354,14 @@ class WeekendCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: AppColors.successContainer.withValues(alpha: 0.5),
+      color: SemanticColors.of(context).successContainer.withOpacity(0.4),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+      border: Border.all(color: SemanticColors.of(context).success.withOpacity(0.2)),
     ),
-    child: const Row(
+    child: Row(
       children: [
-        Icon(Icons.weekend_outlined, color: AppColors.success, size: 28),
-        SizedBox(width: 14),
+        Icon(Icons.weekend_outlined, color: SemanticColors.of(context).success, size: 28),
+        const SizedBox(width: 14),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -370,12 +370,12 @@ class WeekendCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: AppColors.success,
+                color: SemanticColors.of(context).success,
               ),
             ),
             Text(
               'Enjoy your rest day!',
-              style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -390,18 +390,20 @@ class ShiftCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final sem = SemanticColors.of(context);
     final tc = shift.type == 'overtime'
-        ? AppColors.warning
+        ? sem.warning
         : shift.type == 'remote'
-        ? AppColors.tertiary
-        : AppColors.primary;
+        ? colors.tertiary
+        : colors.primary;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: colors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant, width: 0.5),
+        border: Border.all(color: colors.outlineVariant, width: 0.5),
       ),
       child: Column(
         children: [
@@ -410,7 +412,7 @@ class ShiftCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: tc.withValues(alpha: 0.1),
+                  color: tc.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -444,7 +446,7 @@ class ShiftCard extends StatelessWidget {
               Expanded(
                 child: Container(
                   height: 1,
-                  color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                  color: colors.outlineVariant.withOpacity(0.5),
                 ),
               ),
               ShiftTime(
@@ -458,17 +460,17 @@ class ShiftCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.location_on_outlined,
                 size: 14,
-                color: AppColors.outline,
+                color: colors.outline,
               ),
               const SizedBox(width: 5),
               Text(
                 shift.location,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.onSurfaceVariant,
+                  color: colors.onSurfaceVariant,
                 ),
               ),
             ],
@@ -477,9 +479,9 @@ class ShiftCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               shift.notes!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: AppColors.outline,
+                color: colors.outline,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -509,20 +511,20 @@ class ShiftTime extends StatelessWidget {
     children: [
       Row(
         children: [
-          Icon(icon, size: 12, color: AppColors.outline),
+          Icon(icon, size: 12, color: Theme.of(context).colorScheme.outline),
           const SizedBox(width: 3),
           Text(
             label,
-            style: const TextStyle(fontSize: 10, color: AppColors.outline),
+            style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.outline),
           ),
         ],
       ),
       Text(
         value,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w800,
-          color: AppColors.onSurface,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     ],
@@ -538,15 +540,15 @@ class LeaveIndicator extends StatelessWidget {
     padding: const EdgeInsets.all(14),
     margin: const EdgeInsets.only(bottom: 10),
     decoration: BoxDecoration(
-      color: AppColors.warningContainer,
+      color: SemanticColors.of(context).warningContainer,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+      border: Border.all(color: SemanticColors.of(context).warning.withOpacity(0.3)),
     ),
     child: Row(
       children: [
-        const Icon(
+        Icon(
           Icons.beach_access_outlined,
-          color: AppColors.warning,
+          color: SemanticColors.of(context).warning,
           size: 22,
         ),
         const SizedBox(width: 10),
@@ -556,17 +558,17 @@ class LeaveIndicator extends StatelessWidget {
             children: [
               Text(
                 '${leave.type} - ${AppUtils.leaveStatusLabel(leave.status)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               Text(
                 leave.reason,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -626,7 +628,7 @@ class _LeaveRequestSheetState extends State<LeaveRequestSheet> {
           ScaffoldMessenger.of(ctx).showSnackBar(
             SnackBar(
               content: Text(message),
-              backgroundColor: AppColors.success,
+              backgroundColor: SemanticColors.of(ctx).success,
             ),
           );
           context.read<ScheduleCubit>().loadMonth(
@@ -639,7 +641,7 @@ class _LeaveRequestSheetState extends State<LeaveRequestSheet> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.error!),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
           ctx.read<ProfileCubit>().clearMessages();
@@ -664,7 +666,6 @@ class _LeaveRequestSheetState extends State<LeaveRequestSheet> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 8),
@@ -691,13 +692,13 @@ class _LeaveRequestSheetState extends State<LeaveRequestSheet> {
                             ),
                             decoration: BoxDecoration(
                               color: sel
-                                  ? AppColors.primary
-                                  : AppColors.surfaceContainerLow,
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.surfaceContainerLow,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: sel
-                                    ? AppColors.primary
-                                    : AppColors.outlineVariant,
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.outlineVariant,
                               ),
                             ),
                             child: Text(
@@ -705,7 +706,9 @@ class _LeaveRequestSheetState extends State<LeaveRequestSheet> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: sel ? Colors.white : AppColors.onSurface,
+                                color: sel
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                           ),
@@ -736,10 +739,10 @@ class _LeaveRequestSheetState extends State<LeaveRequestSheet> {
               const SizedBox(height: 6),
               Text(
                 '$days day${days > 1 ? 's' : ''} selected',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 14),
@@ -748,7 +751,6 @@ class _LeaveRequestSheetState extends State<LeaveRequestSheet> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 8),
@@ -783,12 +785,12 @@ class _LeaveRequestSheetState extends State<LeaveRequestSheet> {
                           );
                         },
                   child: state.isSubmitting
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         )
                       : const Text('Submit Request'),
@@ -819,16 +821,16 @@ class DateButton extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.outlineVariant),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.calendar_today_outlined,
             size: 14,
-            color: AppColors.primary,
+            color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(width: 8),
           Column(
@@ -836,18 +838,18 @@ class DateButton extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 9,
-                  color: AppColors.outline,
+                  color: Theme.of(context).colorScheme.outline,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 AppUtils.formatShortDate(date),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],

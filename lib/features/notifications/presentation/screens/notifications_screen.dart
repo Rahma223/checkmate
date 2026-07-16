@@ -12,7 +12,7 @@ class NotificationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<NotificationCubit, NotificationState>(
       builder: (ctx, state) => Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
           title: const Text('Notifications'),
           actions: [
@@ -66,89 +66,97 @@ class _NotifTile extends StatelessWidget {
     _ => Icons.notifications_outlined,
   };
 
-  Color get _iconColor => switch (item.type) {
-    'shift' => AppColors.primary,
-    'leave' => AppColors.warning,
-    'task' => AppColors.success,
-    'team' => AppColors.secondary,
-    'payroll' => AppColors.tertiary,
-    _ => AppColors.outline,
-  };
+  Color _iconColor(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final sem = SemanticColors.of(context);
+    return switch (item.type) {
+      'shift' => colors.primary,
+      'leave' => sem.warning,
+      'task' => sem.success,
+      'team' => colors.secondary,
+      'payroll' => colors.tertiary,
+      _ => colors.outline,
+    };
+  }
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    child: Container(
-      color: item.isRead
-          ? Colors.transparent
-          : AppColors.primaryFixed.withOpacity(0.15),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: _iconColor.withOpacity(0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(_icon, size: 20, color: _iconColor),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: item.isRead
-                              ? FontWeight.w500
-                              : FontWeight.w700,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      AppUtils.timeAgo(item.timestamp),
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: AppColors.outline,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.body,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          if (!item.isRead)
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final ic = _iconColor(context);
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        color: item.isRead
+            ? Colors.transparent
+            : colors.primaryContainer.withOpacity(0.15),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Container(
-              width: 8,
-              height: 8,
-              margin: const EdgeInsets.only(left: 8, top: 4),
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: ic.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
+              child: Icon(_icon, size: 20, color: ic),
             ),
-        ],
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.title,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: item.isRead
+                                ? FontWeight.w500
+                                : FontWeight.w700,
+                            color: colors.onSurface,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        AppUtils.timeAgo(item.timestamp),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: colors.outline,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.body,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colors.onSurfaceVariant,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (!item.isRead)
+              Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.only(left: 8, top: 4),
+                decoration: BoxDecoration(
+                  color: colors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

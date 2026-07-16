@@ -154,8 +154,8 @@ class _MapDetailScreenState extends State<MapDetailScreen> {
           circleId: const CircleId('company_geofence'),
           center: companyLocation,
           radius: (user?.geofenceRadius ?? 100).toDouble(),
-          fillColor: AppColors.primary.withOpacity(0.12),
-          strokeColor: AppColors.primary,
+          fillColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+          strokeColor: Theme.of(context).colorScheme.primary,
           strokeWidth: 2,
         ),
       );
@@ -258,7 +258,7 @@ class _MapDetailScreenState extends State<MapDetailScreen> {
         _focusMap();
       },
       child: Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
           title: const Text('Workspace Map'),
           actions: const [
@@ -354,8 +354,8 @@ class _MapDetailScreenState extends State<MapDetailScreen> {
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     color: _locationError == null
-                                        ? AppColors.onSurfaceVariant
-                                        : AppColors.error,
+                                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                                        : Theme.of(context).colorScheme.error,
                                   ),
                             ),
                           ),
@@ -410,14 +410,16 @@ class _WorkAreaStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final sem = SemanticColors.of(context);
     final isInside = inside == true;
     final isKnown = companyLocationAvailable && inside != null;
     final color = isKnown
-        ? (isInside ? AppColors.success : AppColors.error)
-        : AppColors.outline;
+        ? (isInside ? sem.success : colors.error)
+        : colors.outline;
     final background = isKnown
-        ? (isInside ? AppColors.successContainer : AppColors.errorContainer)
-        : AppColors.surfaceContainerLow;
+        ? (isInside ? sem.successContainer : colors.errorContainer)
+        : colors.surfaceContainerLow;
     final label = !companyLocationAvailable
         ? 'Missing work area'
         : inside == null
@@ -470,13 +472,13 @@ class _MetricChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
     decoration: BoxDecoration(
-      color: AppColors.surfaceContainerLow,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(8),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: AppColors.primary),
+        Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -68,7 +68,7 @@ class _ProfileTabsState extends State<_ProfileTabs>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: BlocBuilder<AuthCubit, AuthState>(
         builder: (ctx, authState) {
           final user = authState is AuthAuthenticated ? authState.user : null;
@@ -111,9 +111,10 @@ class _ProfileSliverHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return SliverToBoxAdapter(
       child: Container(
-        color: AppColors.surfaceContainerLowest,
+        color: colors.surfaceContainerLowest,
         padding: EdgeInsets.only(
           top: MediaQuery.of(context).padding.top + 16,
           left: 20,
@@ -125,12 +126,12 @@ class _ProfileSliverHeader extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Profile',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.onSurface,
+                    color: colors.onSurface,
                   ),
                 ),
                 IconButton(
@@ -156,14 +157,14 @@ class _ProfileSliverHeader extends StatelessWidget {
                         width: 22,
                         height: 22,
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: colors.primary,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
+                          border: Border.all(color: colors.surface, width: 2),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.camera_alt_rounded,
                           size: 11,
-                          color: Colors.white,
+                          color: colors.onPrimary,
                         ),
                       ),
                     ),
@@ -176,34 +177,34 @@ class _ProfileSliverHeader extends StatelessWidget {
                     children: [
                       Text(
                         user?.name ?? '---',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.onSurface,
+                          color: colors.onSurface,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         user?.position ?? '---',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: AppColors.onSurfaceVariant,
+                          color: colors.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.badge_outlined,
                             size: 13,
-                            color: AppColors.outline,
+                            color: colors.outline,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             user?.employeeId ?? '---',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppColors.outline,
+                              color: colors.outline,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -248,7 +249,7 @@ class _ProfileSliverHeader extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceContainerLowest,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -265,32 +266,35 @@ class _QuickStat extends StatelessWidget {
   const _QuickStat({required this.label, required this.value});
 
   @override
-  Widget build(BuildContext context) => Expanded(
-    child: Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 10,
-            color: AppColors.outline,
-            fontWeight: FontWeight.w600,
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: colors.outline,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: colors.onSurface,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _Vdivider extends StatelessWidget {
@@ -298,7 +302,7 @@ class _Vdivider extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: 1,
     height: 30,
-    color: AppColors.outlineVariant,
+    color: Theme.of(context).colorScheme.outlineVariant,
     margin: const EdgeInsets.symmetric(horizontal: 8),
   );
 }
@@ -309,6 +313,7 @@ class _LeaveBalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final total = user?.totalLeaves ?? 21;
     final used = user?.usedLeaves ?? 0;
     final remaining = user?.remainingLeaves ?? 21;
@@ -317,35 +322,35 @@ class _LeaveBalanceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.primaryFixed.withOpacity(0.3),
+        color: colors.primaryContainer.withOpacity(0.2),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primaryFixed),
+        border: Border.all(color: colors.primaryContainer.withOpacity(0.5)),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.beach_access_outlined,
                 size: 16,
-                color: AppColors.primary,
+                color: colors.primary,
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Leave Balance',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
+                  color: colors.primary,
                 ),
               ),
               const Spacer(),
               Text(
                 '$remaining remaining',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+                  color: colors.primary,
                 ),
               ),
             ],
@@ -356,8 +361,8 @@ class _LeaveBalanceCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: pct,
               minHeight: 6,
-              backgroundColor: AppColors.primaryFixed,
-              valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+              backgroundColor: colors.primaryContainer.withOpacity(0.5),
+              valueColor: AlwaysStoppedAnimation(colors.primary),
             ),
           ),
           const SizedBox(height: 8),
@@ -366,16 +371,16 @@ class _LeaveBalanceCard extends StatelessWidget {
             children: [
               Text(
                 'Used: $used days',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: AppColors.onSurfaceVariant,
+                  color: colors.onSurfaceVariant,
                 ),
               ),
               Text(
                 'Total: $total days',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: AppColors.onSurfaceVariant,
+                  color: colors.onSurfaceVariant,
                 ),
               ),
             ],
@@ -392,7 +397,7 @@ class _TabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    color: AppColors.surfaceContainerLowest,
+    color: Theme.of(context).colorScheme.surfaceContainerLowest,
     child: TabBar(
       controller: controller,
       tabs: const [
@@ -400,10 +405,10 @@ class _TabBar extends StatelessWidget {
         Tab(text: 'Leave'),
         Tab(text: 'Settings'),
       ],
-      labelColor: AppColors.primary,
-      unselectedLabelColor: AppColors.outline,
-      labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-      indicatorColor: AppColors.primary,
+      labelColor: Theme.of(context).colorScheme.primary,
+      unselectedLabelColor: Theme.of(context).colorScheme.outline,
+      labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+      indicatorColor: Theme.of(context).colorScheme.primary,
       indicatorWeight: 2.5,
     ),
   );
@@ -486,7 +491,7 @@ class _OverviewTab extends StatelessWidget {
                   value: stats != null
                       ? '${stats!.present} / ${stats!.workingDays}'
                       : '--',
-                  color: AppColors.success,
+                  color: SemanticColors.of(context).success,
                 ),
                 const Divider(),
                 _MiniStatRow(
@@ -494,7 +499,7 @@ class _OverviewTab extends StatelessWidget {
                   value: stats != null
                       ? '${stats!.totalHours.toStringAsFixed(1)} hrs'
                       : '--',
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 const Divider(),
                 _MiniStatRow(
@@ -502,7 +507,7 @@ class _OverviewTab extends StatelessWidget {
                   value: stats != null
                       ? '${stats!.overtimeHours.toStringAsFixed(1)} hrs'
                       : '--',
-                  color: AppColors.warning,
+                  color: SemanticColors.of(context).warning,
                 ),
                 const Divider(),
                 _MiniStatRow(
@@ -510,7 +515,7 @@ class _OverviewTab extends StatelessWidget {
                   value: stats != null
                       ? '${stats!.attendancePct.toStringAsFixed(0)}%'
                       : '--',
-                  color: AppColors.success,
+                  color: SemanticColors.of(context).success,
                 ),
               ],
       ),
@@ -524,28 +529,31 @@ class _SectionCard extends StatelessWidget {
   const _SectionCard({required this.title, required this.children});
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        title,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: AppColors.onSurfaceVariant,
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: colors.onSurfaceVariant,
+          ),
         ),
-      ),
-      const SizedBox(height: 10),
-      Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.outlineVariant, width: 0.5),
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: colors.outlineVariant, width: 0.5),
+          ),
+          child: Column(children: children),
         ),
-        child: Column(children: children),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 class _MiniStatRow extends StatelessWidget {
@@ -564,7 +572,7 @@ class _MiniStatRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 14, color: AppColors.onSurface),
+          style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
         ),
         const Spacer(),
         Text(
@@ -697,13 +705,13 @@ class _SettingsTabState extends State<_SettingsTab> {
       const SizedBox(height: 24),
       OutlinedButton.icon(
         onPressed: () => _confirmLogout(context),
-        icon: const Icon(Icons.logout_rounded, color: AppColors.error),
-        label: const Text(
+        icon: Icon(Icons.logout_rounded, color: Theme.of(context).colorScheme.error),
+        label: Text(
           'Sign Out',
-          style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700),
+          style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w700),
         ),
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.error),
+          side: BorderSide(color: Theme.of(context).colorScheme.error),
           minimumSize: const Size(double.infinity, 50),
         ),
       ),
@@ -730,7 +738,7 @@ class _SettingsTabState extends State<_SettingsTab> {
             Navigator.pop(context);
             widget.onLogout();
           },
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error, foregroundColor: Theme.of(context).colorScheme.onError),
           child: const Text('Sign Out'),
         ),
       ],
@@ -744,36 +752,39 @@ class _SettingsSection extends StatelessWidget {
   const _SettingsSection({required this.title, required this.tiles});
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        title,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: AppColors.onSurfaceVariant,
-          letterSpacing: 0.3,
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: colors.onSurfaceVariant,
+            letterSpacing: 0.3,
+          ),
         ),
-      ),
-      const SizedBox(height: 10),
-      Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.outlineVariant, width: 0.5),
-        ),
-        child: Column(
-          children: [
-            for (int i = 0; i < tiles.length; i++) ...[
-              tiles[i],
-              if (i < tiles.length - 1) const Divider(height: 1, indent: 52),
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: colors.outlineVariant, width: 0.5),
+          ),
+          child: Column(
+            children: [
+              for (int i = 0; i < tiles.length; i++) ...[
+                tiles[i],
+                if (i < tiles.length - 1) const Divider(height: 1, indent: 52),
+              ],
             ],
-          ],
+          ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 class _SwitchTile extends StatelessWidget {
@@ -790,35 +801,38 @@ class _SwitchTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-    child: Row(
-      children: [
-        Icon(icon, size: 20, color: AppColors.primary),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: colors.primary),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSurface,
+                  ),
                 ),
-              ),
-              Text(
-                sub,
-                style: const TextStyle(fontSize: 11, color: AppColors.outline),
-              ),
-            ],
+                Text(
+                  sub,
+                  style: TextStyle(fontSize: 11, color: colors.outline),
+                ),
+              ],
+            ),
           ),
-        ),
-        Switch(value: value, onChanged: onChanged),
-      ],
-    ),
-  );
+          Switch(value: value, onChanged: onChanged),
+        ],
+      ),
+    );
+  }
 }
 
 class _NavTile extends StatelessWidget {
@@ -833,15 +847,15 @@ class _NavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-    leading: Icon(icon, size: 20, color: AppColors.primary),
+    leading: Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
     title: Text(
       label,
       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
     ),
-    trailing: const Icon(
+    trailing: Icon(
       Icons.chevron_right_rounded,
       size: 18,
-      color: AppColors.outline,
+      color: Theme.of(context).colorScheme.outline,
     ),
     onTap: onTap,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
@@ -868,51 +882,53 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   }
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.only(
-      left: 24,
-      right: 24,
-      top: 24,
-      bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SheetHandle(title: 'Edit Profile'),
-        const SizedBox(height: 16),
-        const Text(
-          'Full Name',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: AppColors.onSurfaceVariant,
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SheetHandle(title: 'Edit Profile'),
+          const SizedBox(height: 16),
+          Text(
+            'Full Name',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: colors.onSurfaceVariant,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _nameCtrl,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.person_outline),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _nameCtrl,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.person_outline),
+            ),
           ),
-        ),
-        const SizedBox(height: 14),
-        const Text(
-          'Phone',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: AppColors.onSurfaceVariant,
+          const SizedBox(height: 14),
+          Text(
+            'Phone',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: colors.onSurfaceVariant,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _phoneCtrl,
-          keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.phone_outlined),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _phoneCtrl,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.phone_outlined),
+            ),
           ),
-        ),
         const SizedBox(height: 20),
         SizedBox(
           width: double.infinity,
@@ -933,4 +949,5 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
       ],
     ),
   );
+}
 }

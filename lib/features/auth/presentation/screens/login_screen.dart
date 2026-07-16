@@ -54,13 +54,13 @@ class _LoginScreenState extends State<LoginScreen>
           ScaffoldMessenger.of(ctx).showSnackBar(
             SnackBar(
               content: Text(state.message),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(ctx).colorScheme.error,
             ),
           );
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
@@ -78,10 +78,10 @@ class _LoginScreenState extends State<LoginScreen>
                         width: 60,
                         height: 60,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                          gradient: LinearGradient(
                             colors: [
-                              AppColors.primary,
-                              AppColors.primaryContainer,
+                              Theme.of(context).colorScheme.primary,
+                              Theme.of(context).colorScheme.primaryContainer,
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -89,34 +89,34 @@ class _LoginScreenState extends State<LoginScreen>
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withOpacity(0.35),
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.35),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.business_center_rounded,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onPrimary,
                           size: 30,
                         ),
                       ),
                       const SizedBox(height: 30),
-                      const Text(
+                      Text(
                         'Welcome back',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.onSurface,
+                          color: Theme.of(context).colorScheme.onSurface,
                           letterSpacing: -0.5,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
+                      Text(
                         'Sign in to Checkmate',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 40),
@@ -126,12 +126,12 @@ class _LoginScreenState extends State<LoginScreen>
                       TextFormField(
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'you@company.com',
                           prefixIcon: Icon(
                             Icons.mail_outline_rounded,
                             size: 20,
-                            color: AppColors.outline,
+                            color: Theme.of(context).colorScheme.outline,
                           ),
                         ),
                         validator: (v) =>
@@ -145,10 +145,10 @@ class _LoginScreenState extends State<LoginScreen>
                         obscureText: _hidePass,
                         decoration: InputDecoration(
                           hintText: '••••••••',
-                          prefixIcon: const Icon(
+                          prefixIcon: Icon(
                             Icons.lock_outline_rounded,
                             size: 20,
-                            color: AppColors.outline,
+                            color: Theme.of(context).colorScheme.outline,
                           ),
                           suffixIcon: GestureDetector(
                             onTap: () => setState(() => _hidePass = !_hidePass),
@@ -157,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   ? Icons.visibility_outlined
                                   : Icons.visibility_off_outlined,
                               size: 20,
-                              color: AppColors.outline,
+                              color: Theme.of(context).colorScheme.outline,
                             ),
                           ),
                         ),
@@ -175,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen>
                       const SizedBox(height: 8),
 
                       BlocBuilder<AuthCubit, AuthState>(
-                        builder: (_, state) {
+                        builder: (ctx, state) {
                           final loading = state is AuthLoading;
                           return SizedBox(
                             width: double.infinity,
@@ -183,12 +183,12 @@ class _LoginScreenState extends State<LoginScreen>
                             child: ElevatedButton(
                               onPressed: loading ? null : _submit,
                               child: loading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 22,
                                       height: 22,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2.5,
-                                        color: Colors.white,
+                                        color: Theme.of(context).colorScheme.onPrimary,
                                       ),
                                     )
                                   : const Text(
@@ -209,7 +209,6 @@ class _LoginScreenState extends State<LoginScreen>
                             child: Text(
                               'or',
                               style: TextStyle(
-                                color: AppColors.outline,
                                 fontSize: 12,
                               ),
                             ),
@@ -232,25 +231,25 @@ class _LoginScreenState extends State<LoginScreen>
                                 height: 60,
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                    color: AppColors.outlineVariant,
+                                    color: Theme.of(context).colorScheme.outlineVariant,
                                     width: 1.5,
                                   ),
                                   borderRadius: BorderRadius.circular(16),
-                                  color: AppColors.surfaceContainerLow,
+                                  color: Theme.of(context).colorScheme.surfaceContainerLow,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.fingerprint_rounded,
                                   size: 32,
-                                  color: AppColors.primary,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'Use Biometric',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.outline,
+                                color: Theme.of(context).colorScheme.outline,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -262,24 +261,24 @@ class _LoginScreenState extends State<LoginScreen>
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryFixed.withOpacity(0.3),
+                          color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.primaryFixed),
+                          border: Border.all(color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5)),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(
                               Icons.info_outline_rounded,
                               size: 16,
-                              color: AppColors.primary,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
-                            SizedBox(width: 10),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 'Demo mode — tap Sign In with the pre-filled credentials',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.primary,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
                             ),
@@ -299,10 +298,10 @@ class _LoginScreenState extends State<LoginScreen>
 
   Widget _label(String t) => Text(
     t,
-    style: const TextStyle(
+    style: TextStyle(
       fontSize: 13,
       fontWeight: FontWeight.w600,
-      color: AppColors.onSurfaceVariant,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
     ),
   );
 }
