@@ -13,12 +13,16 @@ class ScheduleRemoteDataSource {
       final response = await dio.get(
         '/items/Schedules',
         queryParameters: {
-          'filter[user][_eq]': userId,
+          'filter[user][directus_users_id][id][_eq]': userId,
           'sort': 'work_date',
-          'fields': '*,user.id',
+          'fields': '*,user.*',
         },
       );
-
+      print("==============");
+      print("userId = $userId");
+      print(userId.runtimeType);
+      print("==============");
+      print(response.data);
       final data = response.data['data'] as List<dynamic>? ?? [];
 
       return data
