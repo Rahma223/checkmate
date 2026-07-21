@@ -76,13 +76,27 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> updateProfile(UserEntity user) async {
-    final result = await _repo.updateProfile(user);
-    result.fold(
-      (f) => emit(AuthError(f.message)),
-      (u) => emit(AuthAuthenticated(u)),
-    );
-  }
+  final result = await _repo.updateProfile(user);
+  result.fold(
+    (f) => emit(AuthError(f.message)),
+    (u) => emit(AuthAuthenticated(u)),
+  );
+}
 
-  UserEntity? get currentUser =>
-      state is AuthAuthenticated ? (state as AuthAuthenticated).user : null;
+Future<void> refreshUser() async {
+  if (state is! AuthAuthenticated) return;
+
+  final result = await _repo.getProfile();
+
+  result.fold(
+    (f) => emit(AuthError(f.message)),
+    (user) => emit(AuthAuthenticated(user)),
+  );
+}
+
+UserEntity? get currentUser =>
+    state is AuthAuthenticated
+        ? (state as AuthAuthenticated).user
+        : null;
+
 }

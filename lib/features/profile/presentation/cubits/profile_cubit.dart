@@ -143,7 +143,25 @@ class ProfileCubit extends Cubit<ProfileState> {
       return;
     }
 
+    // Calculate requested leave days
+    final requestedDays = toDate.difference(fromDate).inDays + 1;
+
+    // Calculate remaining leave days
+    final remainingDays =
+        authState.user.totalLeaves - authState.user.usedLeaves;
+
+    // Validate before sending the request
+    if (requestedDays > remainingDays) {
+      emit(
+        state.copyWith(
+          error: 'You only have $remainingDays leave day(s) remaining.',
+        ),
+      );
+      return;
+    }
+
     emit(state.copyWith(isSubmitting: true));
+
     final result = await _leaveRepo.submitLeave(
       userId: authState.user.id,
       type: type,
@@ -151,10 +169,12 @@ class ProfileCubit extends Cubit<ProfileState> {
       toDate: toDate,
       reason: reason,
     );
+
     await result.fold(
       (f) async => emit(state.copyWith(isSubmitting: false, error: f.message)),
       (_) async {
         await loadUserLeaves();
+
         emit(
           state.copyWith(
             isSubmitting: false,

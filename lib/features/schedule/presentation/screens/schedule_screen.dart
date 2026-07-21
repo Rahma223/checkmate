@@ -1,6 +1,7 @@
 import 'package:checkmate/core/theme/app_theme.dart';
 import 'package:checkmate/core/utils/app_utils.dart';
 import 'package:checkmate/domain/entities/entities.dart';
+import 'package:checkmate/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:checkmate/features/profile/presentation/cubits/profile_cubit.dart';
 import 'package:checkmate/features/schedule/presentation/cubits/schedule_cubit.dart';
 import 'package:checkmate/presentation/widgets/common/shared_widgets.dart';
@@ -216,7 +217,9 @@ class CalendarHeader extends StatelessWidget {
                                 const SizedBox(width: 2),
                                 Dot(
                                   color: isSel
-                                      ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.7)
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimary.withOpacity(0.7)
                                       : SemanticColors.of(context).warning,
                                 ),
                               ],
@@ -233,7 +236,10 @@ class CalendarHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Legend(color: Theme.of(context).colorScheme.primary, label: 'Work Shift'),
+              Legend(
+                color: Theme.of(context).colorScheme.primary,
+                label: 'Work Shift',
+              ),
               const SizedBox(width: 16),
               Legend(color: SemanticColors.of(context).warning, label: 'Leave'),
               const SizedBox(width: 16),
@@ -290,7 +296,10 @@ class Legend extends StatelessWidget {
       const SizedBox(width: 5),
       Text(
         label,
-        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.outline),
+        style: TextStyle(
+          fontSize: 11,
+          color: Theme.of(context).colorScheme.outline,
+        ),
       ),
     ],
   );
@@ -327,7 +336,10 @@ class DayDetail extends StatelessWidget {
               : shifts.isEmpty
               ? 'No shift scheduled'
               : '${shifts.length} shift${shifts.length > 1 ? 's' : ''}',
-          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.outline,
+          ),
         ),
         const SizedBox(height: 20),
         if (isWknd)
@@ -356,11 +368,17 @@ class WeekendCard extends StatelessWidget {
     decoration: BoxDecoration(
       color: SemanticColors.of(context).successContainer.withOpacity(0.4),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: SemanticColors.of(context).success.withOpacity(0.2)),
+      border: Border.all(
+        color: SemanticColors.of(context).success.withOpacity(0.2),
+      ),
     ),
     child: Row(
       children: [
-        Icon(Icons.weekend_outlined, color: SemanticColors.of(context).success, size: 28),
+        Icon(
+          Icons.weekend_outlined,
+          color: SemanticColors.of(context).success,
+          size: 28,
+        ),
         const SizedBox(width: 14),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,7 +393,10 @@ class WeekendCard extends StatelessWidget {
             ),
             Text(
               'Enjoy your rest day!',
-              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -460,18 +481,11 @@ class ShiftCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(
-                Icons.location_on_outlined,
-                size: 14,
-                color: colors.outline,
-              ),
+              Icon(Icons.location_on_outlined, size: 14, color: colors.outline),
               const SizedBox(width: 5),
               Text(
                 shift.location,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colors.onSurfaceVariant,
-                ),
+                style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
               ),
             ],
           ),
@@ -515,7 +529,10 @@ class ShiftTime extends StatelessWidget {
           const SizedBox(width: 3),
           Text(
             label,
-            style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.outline),
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).colorScheme.outline,
+            ),
           ),
         ],
       ),
@@ -542,7 +559,9 @@ class LeaveIndicator extends StatelessWidget {
     decoration: BoxDecoration(
       color: SemanticColors.of(context).warningContainer,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: SemanticColors.of(context).warning.withOpacity(0.3)),
+      border: Border.all(
+        color: SemanticColors.of(context).warning.withOpacity(0.3),
+      ),
     ),
     child: Row(
       children: [
@@ -620,7 +639,21 @@ class _LeaveRequestSheetState extends State<LeaveRequestSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final days = _to.difference(_from).inDays + 1;
+    final authState = context.read<AuthCubit>().state;
+
+    int totalLeaves = 0;
+    int usedLeaves = 0;
+    int remainingLeaves = 0;
+
+    if (authState is AuthAuthenticated) {
+      totalLeaves = authState.user.totalLeaves;
+      usedLeaves = authState.user.usedLeaves;
+      remainingLeaves = totalLeaves - usedLeaves;
+    }
+
+    final requestedDays = _to.difference(_from).inDays + 1;
+    final remainingAfterRequest = remainingLeaves - requestedDays;
+
     return BlocConsumer<ProfileCubit, ProfileState>(
       listener: (ctx, state) {
         if (state.successMessage != null) {
@@ -655,148 +688,242 @@ class _LeaveRequestSheetState extends State<LeaveRequestSheet> {
             top: 24,
             bottom: MediaQuery.of(context).viewInsets.bottom + 24,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SheetHandle(title: 'Request Leave'),
-              const SizedBox(height: 16),
-              const Text(
-                'Leave Type',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+          child: SingleChildScrollView(
+            keyboardDismissBehavior:
+        ScrollViewKeyboardDismissBehavior.onDrag, 
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SheetHandle(title: 'Request Leave'),
+                const SizedBox(height: 16),
+                const Text(
+                  'Leave Type',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                 ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 36,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children:
-                      [
-                        'Annual Leave',
-                        'Sick Leave',
-                        'Personal Leave',
-                        'Emergency Leave',
-                        'Remote Work',
-                      ].map((t) {
-                        final sel = _type == t;
-                        return GestureDetector(
-                          onTap: () => setState(() => _type = t),
-                          child: Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: sel
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 36,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children:
+                        [
+                          'Annual Leave',
+                          'Sick Leave',
+                          'Personal Leave',
+                          'Emergency Leave',
+                          'Remote Work',
+                        ].map((t) {
+                          final sel = _type == t;
+                          return GestureDetector(
+                            onTap: () => setState(() => _type = t),
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
                                 color: sel
                                     ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(context).colorScheme.outlineVariant,
+                                    : Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: sel
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.outlineVariant,
+                                ),
+                              ),
+                              child: Text(
+                                t,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: sel
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : Theme.of(context).colorScheme.onSurface,
+                                ),
                               ),
                             ),
-                            child: Text(
-                              t,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: sel
-                                    ? Theme.of(context).colorScheme.onPrimary
-                                    : Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                          );
+                        }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DateButton(
+                        label: 'From',
+                        date: _from,
+                        onTap: () => _pickDate(true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DateButton(
+                        label: 'To',
+                        date: _to,
+                        onTap: () => _pickDate(false),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Card(
+              elevation: 0,
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: DateButton(
-                      label: 'From',
-                      date: _from,
-                      onTap: () => _pickDate(true),
-                    ),
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  
+            Row(
+              children: [
+                Icon(
+                  Icons.beach_access_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Leave Balance',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(width: 12),
+                ),
+              ],
+            ),
+                  
+            const SizedBox(height: 18),
+                  
+            _buildInfoRow(
+              context,
+              'Total Leave Days',
+              totalLeaves.toString(),
+            ),
+                  
+            _buildInfoRow(
+              context,
+              'Used Leave Days',
+              usedLeaves.toString(),
+            ),
+                  
+            _buildInfoRow(
+              context,
+              'Remaining Days',
+              remainingLeaves.toString(),
+              valueColor: Colors.green,
+            ),
+                  
+            const Divider(height: 28),
+                  
+            _buildInfoRow(
+              context,
+              'Requested Days',
+              requestedDays.toString(),
+            ),
+                  
+            _buildInfoRow(
+              context,
+              'Remaining After Request',
+              remainingAfterRequest.toString(),
+              valueColor:
+                  remainingAfterRequest < 0
+                      ? Colors.red
+                      : Colors.green,
+            ),
+                  
+            if (remainingAfterRequest < 0) ...[
+              const SizedBox(height: 10),
+                  
+              Row(
+                children: const [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.red,
+                  ),
+                  SizedBox(width: 8),
                   Expanded(
-                    child: DateButton(
-                      label: 'To',
-                      date: _to,
-                      onTap: () => _pickDate(false),
+                    child: Text(
+                      'The requested leave exceeds your remaining balance.',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                '$days day${days > 1 ? 's' : ''} selected',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Reason',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _reasonCtrl,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: 'Briefly explain your reason...',
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: state.isSubmitting
-                      ? null
-                      : () {
-                          if (_reasonCtrl.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please provide a reason'),
-                              ),
-                            );
-                            return;
-                          }
-                          ctx.read<ProfileCubit>().submitLeave(
-                            type: _type,
-                            fromDate: _from,
-                            toDate: _to,
-                            reason: _reasonCtrl.text.trim(),
-                          );
-                        },
-                  child: state.isSubmitting
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        )
-                      : const Text('Submit Request'),
-                ),
-              ),
             ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+               
+                const SizedBox(height: 14),
+                const Text(
+                  'Reason',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _reasonCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'Briefly explain your reason...',
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: state.isSubmitting || remainingAfterRequest < 0
+                        ? null
+                        : () {
+                            if (_reasonCtrl.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please provide a reason'),
+                                ),
+                              );
+                              return;
+                            }
+                            ctx.read<ProfileCubit>().submitLeave(
+                              type: _type,
+                              fromDate: _from,
+                              toDate: _to,
+                              reason: _reasonCtrl.text.trim(),
+                            );
+                          },
+                    child: state.isSubmitting
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          )
+                        : const Text('Submit Request'),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -856,6 +983,41 @@ class DateButton extends StatelessWidget {
           ),
         ],
       ),
+    ),
+  );
+}
+
+
+Widget _buildInfoRow(
+  BuildContext context,
+  String title,
+  String value, {
+  Color? valueColor,
+}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color:
+                valueColor ??
+                Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+      ],
     ),
   );
 }
